@@ -1008,11 +1008,15 @@ chains.
 **User-Facing Documentation:**
 
 - `README.md` -- Landing page with install, quick example, and API reference
-- `docs/01-getting-started.md` -- Installation and Effect concepts
-- `docs/02-config-files.md` -- Codecs, resolvers, strategies, ConfigFile API
-- `docs/03-testing.md` -- Test layer and patterns
-- `docs/04-error-handling.md` -- Tagged error types and recovery
-- `docs/05-api-reference.md` -- Complete API surface reference
+- `docs/getting-started.md` -- Installation, Effect concepts, quick start
+- `docs/codecs.md` -- JsonCodec, TomlCodec, EncryptedCodec, custom codecs
+- `docs/resolvers.md` -- All 5 resolvers, resolution mechanics, custom resolvers
+- `docs/strategies.md` -- FirstMatch vs LayeredMerge, custom strategies
+- `docs/events.md` -- ConfigEvents PubSub setup, event types, subscribing
+- `docs/migrations.md` -- ConfigMigration, VersionAccess, writing migrations
+- `docs/watcher.md` -- ConfigWatcher setup, WatchOptions, change detection
+- `docs/testing.md` -- ConfigFile.Test, platform-agnostic setup, test patterns
+- `docs/errors.md` -- ConfigError, CodecError, error handling patterns
 
 **External Resources:**
 
