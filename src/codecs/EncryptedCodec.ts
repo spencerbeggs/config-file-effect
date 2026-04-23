@@ -55,8 +55,8 @@ export const EncryptedCodecKey = {
 const IV_LENGTH = 12;
 
 /**
- * Copy a Uint8Array into a fresh Uint8Array<ArrayBuffer>, which is required
- * by Web Crypto APIs that accept BufferSource.
+ * Copy a `Uint8Array` into a fresh `Uint8Array` backed by a plain `ArrayBuffer`,
+ * which is required by Web Crypto APIs that accept `BufferSource`.
  */
 function toArrayBufferView(src: Uint8Array): Uint8Array<ArrayBuffer> {
 	const buf = new ArrayBuffer(src.length);
@@ -94,7 +94,7 @@ function resolveKey(keySource: EncryptedCodecKey, codecName: string): Effect.Eff
 			const derived = await globalThis.crypto.subtle.deriveKey(
 				{
 					name: "PBKDF2",
-					// Copy into Uint8Array<ArrayBuffer> — required by PBKDF2Params.salt
+					// Copy into ArrayBuffer-backed Uint8Array — required by PBKDF2Params.salt
 					salt: toArrayBufferView(keySource.salt),
 					iterations: 100_000,
 					hash: "SHA-256",

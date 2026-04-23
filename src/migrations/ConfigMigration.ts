@@ -68,7 +68,7 @@ export const VersionAccess = {
 	default: defaultVersionAccess as VersionAccess,
 };
 
-interface ConfigMigrationOptions {
+export interface ConfigMigrationOptions {
 	readonly codec: ConfigCodec;
 	readonly migrations: ReadonlyArray<ConfigFileMigration>;
 	readonly versionAccess?: VersionAccess;

@@ -28,7 +28,7 @@ export interface ConfigWatcherService<A> {
  *
  * @public
  */
-interface ConfigWatcherOptions<A> {
+export interface ConfigWatcherOptions<A> {
 	readonly tag: Context.Tag<ConfigWatcherService<A>, ConfigWatcherService<A>>;
 	readonly configTag: Context.Tag<ConfigFileService<A>, ConfigFileService<A>>;
 	readonly paths: ReadonlyArray<string>;

@@ -23,7 +23,7 @@ export { ConfigEvents } from "./events/ConfigEvents.js";
 export type { ConfigFileOptions } from "./layers/ConfigFileLive.js";
 export type { ConfigFileTestOptions } from "./layers/ConfigFileTest.js";
 // ── Migrations ──────────────────────────────────────────────────────────────
-export type { ConfigFileMigration } from "./migrations/ConfigMigration.js";
+export type { ConfigFileMigration, ConfigMigrationOptions } from "./migrations/ConfigMigration.js";
 export { ConfigMigration, VersionAccess } from "./migrations/ConfigMigration.js";
 // ── Resolvers ───────────────────────────────────────────────────────────────
 export type { ConfigResolver } from "./resolvers/ConfigResolver.js";
@@ -41,5 +41,5 @@ export { FirstMatch } from "./strategies/FirstMatch.js";
 export { LayeredMerge } from "./strategies/LayeredMerge.js";
 // ── Watcher ──────────────────────────────────────────────────────────────────
 export type { ConfigFileChange } from "./watcher/ConfigFileChange.js";
-export type { ConfigWatcherService, WatchOptions } from "./watcher/ConfigWatcher.js";
+export type { ConfigWatcherOptions, ConfigWatcherService, WatchOptions } from "./watcher/ConfigWatcher.js";
 export { ConfigWatcher } from "./watcher/ConfigWatcher.js";
