@@ -10,6 +10,7 @@ import type { ConfigWalkStrategy } from "./ConfigWalkStrategy.js";
  */
 // biome-ignore lint/suspicious/noExplicitAny: strategy must accept any config shape
 export const FirstMatch: ConfigWalkStrategy<any> = {
+	name: "first-match",
 	resolve: (sources) => {
 		const first = sources[0];
 		if (!first) {

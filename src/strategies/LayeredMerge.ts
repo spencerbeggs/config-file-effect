@@ -28,6 +28,7 @@ const deepMerge = (target: Record<string, unknown>, source: Record<string, unkno
  */
 // biome-ignore lint/suspicious/noExplicitAny: strategy must accept any config shape
 export const LayeredMerge: ConfigWalkStrategy<any> = {
+	name: "layered-merge",
 	resolve: (sources) => {
 		if (sources.length === 0) {
 			return Effect.fail(

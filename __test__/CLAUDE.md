@@ -9,7 +9,11 @@ This project uses `@savvy-web/vitest` for test discovery. Tests live here in
 __test__/
   utils/              # Shared mocks, helpers, and type utilities for unit tests
   fixtures/           # Static test data and fixture files for unit tests
-  *.test.ts           # Unit tests
+  codecs.test.ts      # Unit: JsonCodec, TomlCodec parse/stringify/metadata
+  errors.test.ts      # Unit: ConfigError, CodecError _tag and message
+  events.test.ts      # Unit: ConfigEvent, ConfigEventPayload schema
+  migrations.test.ts  # Unit: ConfigMigration codec wrapper
+  strategies.test.ts  # Unit: FirstMatch, LayeredMerge
 
   e2e/
     utils/            # Shared mocks, helpers, and type utilities for e2e tests
@@ -19,7 +23,11 @@ __test__/
   integration/
     utils/            # Shared mocks, helpers, and type utilities for integration tests
     fixtures/         # Static test data and fixture files for integration tests
-    *.int.test.ts     # Integration tests
+    config-file.int.test.ts   # Full service pipeline, validate hook, Test layer
+    events.int.test.ts        # ConfigEvents PubSub integration
+    git-root.int.test.ts      # GitRoot resolver with .git dir/file/subpaths
+    resolvers.int.test.ts     # ExplicitPath, StaticDir, UpwardWalk, WorkspaceRoot
+    watcher.int.test.ts       # ConfigWatcher polling and change detection
 ```
 
 ## Rules

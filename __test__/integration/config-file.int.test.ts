@@ -572,16 +572,19 @@ describe("ConfigFile.Test", () => {
 							const config = yield* tag;
 							return yield* config.load;
 						}),
-						ConfigFile.Test({
-							tag,
-							schema: TestConfigSchema,
-							codec: JsonCodec,
-							strategy: FirstMatch,
-							resolvers: [ExplicitPath(filePath)],
-							files: {
-								[filePath]: readFixture("project-config.json"),
-							},
-						}),
+						Layer.provide(
+							ConfigFile.Test({
+								tag,
+								schema: TestConfigSchema,
+								codec: JsonCodec,
+								strategy: FirstMatch,
+								resolvers: [ExplicitPath(filePath)],
+								files: {
+									[filePath]: readFixture("project-config.json"),
+								},
+							}),
+							NodeFileSystem.layer,
+						),
 					),
 				),
 			);
@@ -600,13 +603,16 @@ describe("ConfigFile.Test", () => {
 						const config = yield* tag;
 						return yield* config.loadOrDefault({ name: "fallback" });
 					}),
-					ConfigFile.Test({
-						tag,
-						schema: TestConfigSchema,
-						codec: JsonCodec,
-						strategy: FirstMatch,
-						resolvers: [StaticDir({ dir: "/nonexistent", filename: "app.json" })],
-					}),
+					Layer.provide(
+						ConfigFile.Test({
+							tag,
+							schema: TestConfigSchema,
+							codec: JsonCodec,
+							strategy: FirstMatch,
+							resolvers: [StaticDir({ dir: "/nonexistent", filename: "app.json" })],
+						}),
+						NodeFileSystem.layer,
+					),
 				),
 			),
 		);
