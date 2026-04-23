@@ -4,6 +4,18 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  silkPeers:
+    '@effect/platform':
+      specifier: '>=0.96.0'
+      version: 0.96.1
+    '@effect/platform-node':
+      specifier: '>=0.106.0'
+      version: 0.106.0
+    effect:
+      specifier: '>=3.21.0'
+      version: 3.21.2
+
 overrides:
   '@isaacs/brace-expansion': ^5.0.1
   lodash: ^4.17.23
@@ -17,7 +29,17 @@ pnpmfileChecksum: sha256-c9H7NdFuy+EHPxtzs2AyECsNH3ZP4b8bcqm4aWTxXV0=
 importers:
 
   .:
+    dependencies:
+      smol-toml:
+        specifier: '>=1.6.1'
+        version: 1.6.1
     devDependencies:
+      '@effect/platform':
+        specifier: catalog:silkPeers
+        version: 0.96.1(effect@3.21.2)
+      '@effect/platform-node':
+        specifier: catalog:silkPeers
+        version: 0.106.0(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2)
       '@savvy-web/changesets':
         specifier: ^0.8.0
         version: 0.8.0(@changesets/cli@2.31.0(@types/node@25.6.0))(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))
@@ -31,8 +53,11 @@ importers:
         specifier: ^0.20.2
         version: 0.20.2(@pnpm/logger@1001.0.1)(@rslib/core@0.21.3(@microsoft/api-extractor@7.58.7(@types/node@25.6.0))(@typescript/native-preview@7.0.0-dev.20260423.1)(typescript@5.9.3))(@types/node@25.6.0)(@typescript/native-preview@7.0.0-dev.20260423.1)(jiti@2.6.1)(typescript@5.9.3)
       '@savvy-web/vitest':
-        specifier: ^1.3.0
-        version: 1.3.0(519fea88d45ab557c6a6c1ff51b28479)
+        specifier: ^1.3.1
+        version: 1.3.1(7d680ae154af2adc10a79d4b2a8812af)
+      effect:
+        specifier: catalog:silkPeers
+        version: 3.21.2
     publishDirectory: dist/dev
 
 packages:
@@ -1069,15 +1094,15 @@ packages:
       '@effect/platform': '>=0.96.0'
       effect: '>=3.21.0'
 
-  '@savvy-web/vitest@1.3.0':
-    resolution: {integrity: sha512-isMb0pMXnW7tiRiBToTC3OkeY/PMc45Qitn8/X56bq2kbvn7M64dXa1LupGD3iFjt/H+3gMqRDsfYgppAR5D8w==}
+  '@savvy-web/vitest@1.3.1':
+    resolution: {integrity: sha512-EIjRYjSfCuXs9z95i+4WsX5uKetDY3nJ6ONOE37eS1MT5NgvuYZyB7UrfHPJDSHq4AqAjW4gBcef3YQmSdZPqQ==}
     peerDependencies:
       '@types/node': ^25.6.0
       '@typescript/native-preview': ^7.0.0-dev.20260124.1
       '@vitest/coverage-v8': ^4.1.0
       typescript: ^6.0.0
       vitest: ^4.1.0
-      vitest-agent-reporter: ^1.2.1
+      vitest-agent-reporter: ^1.3.0
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -3762,8 +3787,8 @@ packages:
       yaml:
         optional: true
 
-  vitest-agent-reporter@1.2.1:
-    resolution: {integrity: sha512-5QMfDMRMzSIynI6+tEUa0aLgmY80BqVQUEs7BFYKYb0msJcXOnmRRUda1QHB5pKh+4NYmeuRjrdIFna9nrwDxA==}
+  vitest-agent-reporter@1.3.0:
+    resolution: {integrity: sha512-YOvzlk8smuVQm16B/TtWvBN+7kk9tS9GvLLnxEFefUyeOdPdf3jFjPTmw8ST1pDoUOthrjlvsPtjbvVhtwFTXw==}
     hasBin: true
     peerDependencies:
       '@vitest/coverage-istanbul': '>=4.1.0'
@@ -5164,14 +5189,14 @@ snapshots:
       workspaces-effect: 0.4.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
       yaml-effect: 0.2.3(effect@3.21.2)
 
-  '@savvy-web/vitest@1.3.0(519fea88d45ab557c6a6c1ff51b28479)':
+  '@savvy-web/vitest@1.3.1(7d680ae154af2adc10a79d4b2a8812af)':
     dependencies:
       '@types/node': 25.6.0
       '@typescript/native-preview': 7.0.0-dev.20260423.1
       '@vitest/coverage-v8': 4.1.5(vitest@4.1.5)
       typescript: 5.9.3
       vitest: 4.1.5(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))
-      vitest-agent-reporter: 1.2.1(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@vitest/coverage-v8@4.1.5)(typescript@5.9.3)(vitest@4.1.5)
+      vitest-agent-reporter: 1.3.0(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@vitest/coverage-v8@4.1.5)(typescript@5.9.3)(vitest@4.1.5)
       workspace-tools: 0.41.4
 
   '@sec-ant/readable-stream@0.4.1': {}
@@ -8064,7 +8089,7 @@ snapshots:
       jiti: 2.6.1
       yaml: 2.8.3
 
-  vitest-agent-reporter@1.2.1(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@vitest/coverage-v8@4.1.5)(typescript@5.9.3)(vitest@4.1.5):
+  vitest-agent-reporter@1.3.0(@effect/cluster@0.58.2(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@vitest/coverage-v8@4.1.5)(typescript@5.9.3)(vitest@4.1.5):
     dependencies:
       '@effect/cli': 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(effect@3.21.2)
       '@effect/platform': 0.96.1(effect@3.21.2)
