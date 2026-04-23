@@ -1,0 +1,56 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ConfigFile > deep merges with LayeredMerge strategy 1`] = `
+{
+  "name": "project",
+  "port": 3000,
+}
+`;
+
+exports[`ConfigFile > discovers multiple sources 1`] = `
+[
+  {
+    "name": "project",
+    "port": 8080,
+  },
+  {
+    "name": "global",
+    "port": 3000,
+  },
+]
+`;
+
+exports[`ConfigFile > loadFrom loads directly from a path bypassing resolvers 1`] = `
+{
+  "name": "explicit",
+  "port": 3000,
+}
+`;
+
+exports[`ConfigFile > loads config from explicit path with FirstMatch 1`] = `
+{
+  "name": "explicit",
+  "port": 3000,
+}
+`;
+
+exports[`ConfigFile > update modifies existing config and saves 1`] = `
+{
+  "name": "original",
+  "port": 9090,
+}
+`;
+
+exports[`ConfigFile > update uses defaultValue when no config file exists 1`] = `
+{
+  "name": "default-name",
+  "port": 7070,
+}
+`;
+
+exports[`ConfigFile.Test > loads pre-populated files 1`] = `
+{
+  "name": "project",
+  "port": 8080,
+}
+`;

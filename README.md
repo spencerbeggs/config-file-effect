@@ -1,74 +1,96 @@
-# pnpm-module-template
+# config-file-effect
 
-A personal template repository by
-[C. Spencer Beggs](https://spencerbeg.gs) for developing and publishing Node.js
-modules to [npm](https://www.npmjs.com/) and
-[GitHub Packages](https://github.com/features/packages).
+[![npm version](https://img.shields.io/npm/v/config-file-effect)](https://www.npmjs.com/package/config-file-effect)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Effect](https://img.shields.io/badge/Effect-3.21+-black)](https://effect.website/)
 
-You're welcome to clone or fork this template for your own use.
+Composable config file loading for [Effect](https://effect.website/) with pluggable codecs, resolution strategies, and merge behaviors.
 
-## What's Included
+## What is config-file-effect?
 
-- **Build pipeline** — Dual-output builds (development + production) via
-  [Rslib](https://rslib.rs/) with automatic `package.json` transformation for
-  publishing
-- **Code quality** — [Biome](https://biomejs.dev/) for linting and formatting,
-  with git hooks for pre-commit checks and commit message validation
-- **Testing** — [Vitest](https://vitest.dev/) with v8 coverage
-- **Versioning** — [Changesets](https://github.com/changesets/changesets) for
-  version management and changelog generation
-- **CI/CD** — GitHub Actions for automated testing, building, and publishing
-  with provenance attestation
-- **TypeScript** — Strict mode, composite builds, ESM-first with `.js` import
-  extensions
+config-file-effect is a generic [Effect](https://effect.website/) library for loading, merging, and writing configuration files. You define a schema, pick a codec (JSON or TOML), choose how to find files (explicit path, static directory, upward walk, workspace root), and select a merge strategy (first match or layered merge). Everything composes as Effect `Layers`. Adopt only what you need.
 
-## Quick Start
+## Features
 
-1. Click **"Use this template"** on GitHub (or clone the repo directly)
-2. Update `package.json` with your package name, repository URL, and homepage
-3. Update the `repo` field in `.changeset/config.json`
-4. Replace the placeholder code in `src/` with your own
-5. Install dependencies:
+- **Pluggable codecs** -- JSON and TOML out of the box, bring your own via the `ConfigCodec` interface
+- **Five resolvers** -- `ExplicitPath`, `StaticDir`, `UpwardWalk`, `WorkspaceRoot`, and `GitRoot` cover common lookup patterns
+- **Two merge strategies** -- `FirstMatch` returns the highest-priority file; `LayeredMerge` deep-merges all sources
+- **Schema-validated** -- Every loaded config is decoded through an Effect `Schema` with an optional `validate` hook for custom checks
+- **Read and write** -- `load`, `save`, `update`, `discover`, `write`, and `validate` operations on a single service
 
-   ```bash
-   pnpm install
-   ```
+## Installation
 
-6. Start developing:
-
-   ```bash
-   pnpm run test:watch    # Run tests in watch mode
-   pnpm run lint:fix      # Auto-fix lint issues
-   pnpm run build         # Build dev + prod outputs
-   ```
-
-## Project Structure
-
-```text
-src/               Source code and tests
-lib/configs/       Shared tool configurations (commitlint, lint-staged, markdownlint)
-dist/dev/          Development build output
-dist/npm/          Production build output (published to registries)
-.github/workflows/ CI/CD workflows
-.changeset/        Changeset configuration
+```bash
+npm install config-file-effect effect @effect/platform
 ```
 
-## Publishing
+For the `ConfigFile.Test` layer (scoped temp-directory helper), also install the optional peer dependency:
 
-Packages are published to both npm and GitHub Packages with provenance
-attestation. The build pipeline automatically transforms `package.json` for
-publishing — the source file stays `"private": true` and the builder handles the
-rest.
+```bash
+npm install @effect/platform-node
+```
 
-See the [Changesets documentation](https://github.com/changesets/changesets) for
-how versioning and releases work.
+## Quick Example
 
-## Claude Code
+```typescript
+import { NodeFileSystem } from "@effect/platform-node";
+import { Effect, Schema } from "effect";
+import {
+  ConfigFile,
+  TomlCodec,
+  FirstMatch,
+  WorkspaceRoot,
+  GitRoot,
+  UpwardWalk,
+} from "config-file-effect";
 
-This template includes configuration for
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code). See
-[CLAUDE.md](CLAUDE.md) for details on the design-first development workflow.
+// 1. Define your config schema
+const MyConfig = Schema.Struct({
+  name: Schema.String,
+  port: Schema.Number,
+  debug: Schema.optional(Schema.Boolean, { default: () => false }),
+});
+type MyConfig = typeof MyConfig.Type;
+
+// 2. Create a typed service tag
+const MyConfigFile = ConfigFile.Tag<MyConfig>("my-tool/Config");
+
+// 3. Build a layer with codec, strategy, and resolvers
+const ConfigLive = ConfigFile.Live({
+  tag: MyConfigFile,
+  schema: MyConfig,
+  codec: TomlCodec,
+  strategy: FirstMatch,
+  resolvers: [
+    WorkspaceRoot({ filename: "my-tool.config.toml", subpaths: [".config", "config", "."] }),
+    GitRoot({ filename: "my-tool.config.toml", subpaths: [".config", "config", "."] }),
+    UpwardWalk({ filename: "my-tool.config.toml" }),
+  ],
+});
+
+// 4. Load config
+const program = Effect.gen(function* () {
+  const config = yield* MyConfigFile;
+  const value = yield* config.load;
+  console.log(value);
+});
+
+Effect.runPromise(
+  program.pipe(
+    Effect.provide(ConfigLive),
+    Effect.provide(NodeFileSystem.layer),
+  ),
+);
+```
+
+## Documentation
+
+- [Getting Started](./docs/01-getting-started.md)
+- [Config Files](./docs/02-config-files.md)
+- [Testing](./docs/03-testing.md)
+- [Error Handling](./docs/04-error-handling.md)
+- [API Reference](./docs/05-api-reference.md)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](./LICENSE)
