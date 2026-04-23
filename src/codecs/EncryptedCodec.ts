@@ -70,7 +70,7 @@ function toArrayBufferView(src: Uint8Array): Uint8Array<ArrayBuffer> {
  *
  * For the Passphrase variant the derivation is cached after first evaluation.
  */
-function resolveKey(keySource: EncryptedCodecKey): Effect.Effect<CryptoKey, CodecError> {
+function resolveKey(keySource: EncryptedCodecKey, codecName: string): Effect.Effect<CryptoKey, CodecError> {
 	if (keySource._tag === "CryptoKey") {
 		return keySource.key;
 	}
@@ -109,7 +109,7 @@ function resolveKey(keySource: EncryptedCodecKey): Effect.Effect<CryptoKey, Code
 		},
 		catch: (error) =>
 			new CodecError({
-				codec: "encrypted",
+				codec: codecName,
 				operation: "parse",
 				reason: `Key derivation failed: ${String(error)}`,
 			}),
@@ -132,8 +132,8 @@ function resolveKey(keySource: EncryptedCodecKey): Effect.Effect<CryptoKey, Code
  * @public
  */
 export function EncryptedCodec(inner: ConfigCodec, keySource: EncryptedCodecKey): ConfigCodec {
-	const getKey = resolveKey(keySource);
 	const codecName = `encrypted(${inner.name})`;
+	const getKey = resolveKey(keySource, codecName);
 
 	return {
 		name: codecName,
@@ -214,12 +214,7 @@ export function EncryptedCodec(inner: ConfigCodec, keySource: EncryptedCodecKey)
 						const result = new Uint8Array(resultBuf);
 						result.set(iv, 0);
 						result.set(ciphertextBytes, IV_LENGTH);
-						// btoa is available in all modern environments (Node 20+, Bun, Deno)
-						let binary = "";
-						for (let i = 0; i < result.length; i++) {
-							binary += String.fromCharCode(result[i] as number);
-						}
-						return btoa(binary);
+						return btoa(Array.from(result, (b) => String.fromCharCode(b)).join(""));
 					},
 					catch: (error) =>
 						new CodecError({

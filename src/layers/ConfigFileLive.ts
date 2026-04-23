@@ -132,7 +132,7 @@ export const makeConfigFileLiveImpl = <A>(
 					const value = yield* options.strategy.resolve(sources);
 					const first = sources[0];
 					if (first) {
-						yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: "strategy" });
+						yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: options.strategy.name });
 						yield* emit({ _tag: "Loaded", path: first.path });
 					}
 					return value;
@@ -152,7 +152,7 @@ export const makeConfigFileLiveImpl = <A>(
 						const value = yield* options.strategy.resolve(sources);
 						const first = sources[0];
 						if (first) {
-							yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: "strategy" });
+							yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: options.strategy.name });
 							yield* emit({ _tag: "Loaded", path: first.path });
 						}
 						return value;
@@ -179,6 +179,8 @@ export const makeConfigFileLiveImpl = <A>(
 						yield* emit({ _tag: "Saved", path });
 						return path;
 					}),
+				// update calls save internally, which emits Written + Saved before Updated.
+				// Subscribers will see all three events for a single update call.
 				update: (fn: (current: A) => A, defaultValue?: A) =>
 					Effect.gen(function* () {
 						const current =

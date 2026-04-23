@@ -19,5 +19,6 @@ export interface ConfigSource<A> {
  * @public
  */
 export interface ConfigWalkStrategy<A> {
+	readonly name: string;
 	readonly resolve: (sources: ReadonlyArray<ConfigSource<A>>) => Effect.Effect<A, ConfigError>;
 }
