@@ -9,7 +9,28 @@ Composable config file loading for Effect with pluggable codecs, resolution
 strategies, and merge behaviors. Extracted from xdg-effect as a standalone
 package with zero XDG coupling.
 
-Architecture design doc: `.claude/design/config-file-effect/architecture.md`
+### Subsystems
+
+| Subsystem | Location | Purpose |
+| --------- | -------- | ------- |
+| ConfigFile | `src/services/`, `src/layers/` | Core service: load, save, validate config files |
+| Codecs | `src/codecs/` | Pluggable parsers: JsonCodec, TomlCodec, EncryptedCodec (AES-GCM wrapper) |
+| Resolvers | `src/resolvers/` | File discovery: ExplicitPath, StaticDir, UpwardWalk, WorkspaceRoot, GitRoot |
+| Strategies | `src/strategies/` | Merge behavior: FirstMatch, LayeredMerge |
+| ConfigEvents | `src/events/` | Opt-in PubSub lifecycle events (15 event variants) |
+| ConfigMigration | `src/migrations/` | Versioned schema transforms via codec wrapper |
+| ConfigWatcher | `src/watcher/` | Polling-based file change detection returning `Stream<ConfigFileChange>` |
+
+### Breaking Change (0.x)
+
+`ConfigFile.Test` no longer provides `NodeFileSystem.layer` internally. The
+consumer must provide a platform-specific `FileSystem` layer (Node, Bun, Deno).
+
+**For architecture details:**
+-> `@./.claude/design/config-file-effect/architecture.md`
+
+Load when adding codecs/resolvers/strategies, modifying layers, debugging layer
+wiring, or implementing encryption/migration/events/watcher features.
 
 ## Build Pipeline
 
@@ -164,8 +185,10 @@ workflow. The GitHub Action is at
 All tests live in `__test__/`, never co-located in `src/`. See
 `__test__/CLAUDE.md` for the full directory structure and rules.
 
-- Unit tests: `__test__/*.test.ts`
+- Unit tests: `__test__/*.test.ts` (errors, codecs, strategies, events,
+  migrations)
+- Integration tests: `__test__/integration/*.int.test.ts` (resolvers, git-root,
+  config-file, events, watcher)
 - E2e tests: `__test__/e2e/*.e2e.test.ts`
-- Integration tests: `__test__/integration/*.int.test.ts`
 - Shared mocks and helpers go in the `utils/` subdirectory for each category
 - Static test data goes in the `fixtures/` subdirectory for each category

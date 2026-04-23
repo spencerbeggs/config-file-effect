@@ -1,6 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { Path } from "@effect/platform";
-import { NodeFileSystem } from "@effect/platform-node";
+import { FileSystem, Path } from "@effect/platform";
 import type { Scope } from "effect";
 import { Effect, Layer } from "effect";
 import type { ConfigFileService } from "../services/ConfigFile.js";
@@ -13,24 +11,25 @@ export interface ConfigFileTestOptions<A> extends ConfigFileOptions<A> {
 
 export const ConfigFileTestImpl = <A>(
 	options: ConfigFileTestOptions<A>,
-): Layer.Layer<ConfigFileService<A>, never, Scope.Scope> =>
+): Layer.Layer<ConfigFileService<A>, never, FileSystem.FileSystem | Scope.Scope> =>
 	Layer.unwrapScoped(
 		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
 			const platformPath = yield* Path.Path;
 			if (options.files) {
 				const written: string[] = [];
 				for (const [filePath, content] of Object.entries(options.files)) {
-					mkdirSync(platformPath.dirname(filePath), { recursive: true });
-					writeFileSync(filePath, content);
+					yield* fs.makeDirectory(platformPath.dirname(filePath), { recursive: true }).pipe(Effect.orDie);
+					yield* fs.writeFileString(filePath, content).pipe(Effect.orDie);
 					written.push(filePath);
 				}
 				yield* Effect.addFinalizer(() =>
-					Effect.sync(() => {
-						for (const p of written) rmSync(p, { force: true });
+					Effect.forEach(written, (p) => fs.remove(p, { recursive: false }).pipe(Effect.ignore), {
+						discard: true,
 					}),
 				);
 			}
 
-			return makeConfigFileLiveImpl(options).pipe(Layer.provide(NodeFileSystem.layer));
+			return makeConfigFileLiveImpl(options);
 		}).pipe(Effect.provide(Path.layer)),
 	);

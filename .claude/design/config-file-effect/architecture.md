@@ -5,7 +5,7 @@ category: architecture
 created: 2026-04-23
 updated: 2026-04-23
 last-synced: 2026-04-23
-completeness: 95
+completeness: 97
 related: []
 dependencies: []
 ---
@@ -26,6 +26,7 @@ strategies, and merge behaviors.
 7. [Testing Strategy](#testing-strategy)
 8. [Future Enhancements](#future-enhancements)
 9. [Related Documentation](#related-documentation)
+10. [Changelog](#changelog)
 
 ---
 
@@ -35,7 +36,8 @@ config-file-effect solves the problem of composable, testable config file
 management in Effect applications. Rather than writing ad-hoc file loading
 logic, the library provides a pluggable pipeline of codecs (how to
 parse/write), resolvers (where to look), and strategies (how to merge
-multiple sources).
+multiple sources). It also supports config file watching, encrypted storage,
+schema migrations, and a PubSub event system for observability.
 
 The library is generic -- it has zero coupling to XDG directories or any
 specific config convention. It was extracted from xdg-effect as a standalone
@@ -59,6 +61,12 @@ adopting the full XDG stack.
 - **Error-absorbing resolvers:** All errors inside resolvers are caught and
   converted to `Option.none()`, so a permission-denied error or missing
   directory does not abort the resolver chain.
+- **Optional observability:** The event system is opt-in. Providing an
+  `events` tag in ConfigFileOptions enables structured lifecycle events via
+  PubSub without affecting the core pipeline.
+- **Codec composition:** Codecs can be wrapped (encryption, migration) to
+  build layered processing pipelines while preserving the ConfigCodec
+  interface.
 
 **When to reference this document:**
 
@@ -66,6 +74,8 @@ adopting the full XDG stack.
 - When modifying the service or layer implementation
 - When integrating config-file-effect into a consuming application
 - When debugging layer wiring or service resolution issues
+- When implementing encryption, migrations, or event handling
+- When setting up config file watching
 
 ---
 
@@ -79,12 +89,15 @@ files. The source tree is organized by responsibility:
 ```text
 src/
   index.ts              # Single barrel export
-  codecs/               # Pluggable config file format parsers
+  codecs/               # Pluggable config file format parsers + encryption
   errors/               # Data.TaggedError types with Base exports
+  events/               # PubSub event system for lifecycle observability
   layers/               # Layer.Layer implementations (Live + Test)
+  migrations/           # Schema versioning and migration pipeline
   resolvers/            # Config file location strategies
   services/             # Context.Tag service interface + factories
   strategies/           # Config resolution merge strategies
+  watcher/              # Polling-based config file change detection
 ```
 
 ### System Components
@@ -146,41 +159,236 @@ interface ConfigFileService<A> {
 
 **Layer type:** `Layer.Layer<ConfigFileService<A>, never, FileSystem.FileSystem>`
 
-#### Component 3: ConfigFileTest
+#### Component 3: ConfigFileTest (Platform-Agnostic)
 
 **Location:** `src/layers/ConfigFileTest.ts`
 
 **Purpose:** Test layer that pre-populates files in temp directories with
-automatic cleanup.
+automatic cleanup. Platform-agnostic -- the consumer provides the platform
+layer.
 
 **Responsibilities:**
 
 - Create temp files from a `files: Record<string, string>` map
-- Provide NodeFileSystem.layer automatically
 - Clean up written files via Effect finalizers on scope close
+- Use `FileSystem` and `Path` from `@effect/platform` (not platform-node)
 
 **Dependencies:**
 
-- Depends on: NodeFileSystem (`@effect/platform-node`), Scope
+- Depends on: FileSystem (`@effect/platform`), Scope
 - Used by: ConfigFile.Test factory, test suites
+- Consumer provides: `NodeFileSystem.layer` or `BunFileSystem.layer`, etc.
 
-**Layer type:** `Layer.Layer<ConfigFileService<A>, never, Scope.Scope>`
+**Layer type:**
+`Layer.Layer<ConfigFileService<A>, never, FileSystem.FileSystem | Scope.Scope>`
+
+**Breaking change (0.x):** Previously imported `@effect/platform-node`
+directly and provided `NodeFileSystem.layer` internally. Now requires the
+consumer to provide a platform-specific `FileSystem` layer. This decouples
+the test layer from Node.js and enables Bun/Deno test environments.
+
+#### Component 4: ConfigEvents (PubSub Event System)
+
+**Location:** `src/events/ConfigEvent.ts`, `src/events/ConfigEvents.ts`
+
+**Purpose:** Structured lifecycle event system for observability. Emits
+events at each stage of the config loading/saving pipeline via Effect PubSub.
+
+**Responsibilities:**
+
+- Define 15 event payload variants as `Schema.TaggedStruct` types
+- Wrap each payload in a `ConfigEvent` Schema.Class with a UTC timestamp
+- Provide `ConfigEventsService` interface with a single `events` PubSub field
+- Provide `ConfigEvents.Tag(id)` and `ConfigEvents.Live(tag)` factories
+
+**Event payload variants:**
+
+| Event | Fields | Emitted When |
+| ----- | ------ | ------------ |
+| `Discovered` | path, tier | Resolver finds a file |
+| `DiscoveryFailed` | tier, reason | Resolver fails or returns none |
+| `Resolved` | path, tier, strategy | Strategy selects a source |
+| `ResolutionFailed` | reason | Strategy fails |
+| `Parsed` | path, codec | Codec parse succeeds |
+| `ParseFailed` | path, codec, reason | Codec parse fails |
+| `Stringified` | path, codec | Codec stringify succeeds |
+| `StringifyFailed` | codec, reason | Codec stringify fails |
+| `Validated` | path | Schema decode + validate succeeds |
+| `ValidationFailed` | path, reason | Schema decode or validate fails |
+| `Loaded` | path | Config value fully loaded |
+| `Saved` | path | Config saved to default path |
+| `Updated` | path | Config updated (load + save) |
+| `NotFound` | (none) | No config sources found |
+| `Written` | path | File written to disk |
+
+**Integration with ConfigFileLive:** The `ConfigFileOptions` interface has an
+optional `events` field accepting a `Context.Tag<ConfigEventsService>`. When
+provided, ConfigFileLive emits events at each pipeline stage. When absent, the
+emit function is a no-op (`Effect.void`). Events are resolved via
+`Effect.serviceOption` so a missing service in the context does not cause
+failures.
+
+**Dependencies:**
+
+- Depends on: PubSub (`effect`), Schema (`effect`)
+- Used by: ConfigFileLive (optional), consumer subscriptions
+
+**Layer type:** `Layer.Layer<ConfigEventsService, never, never>`
+
+#### Component 5: EncryptedCodec
+
+**Location:** `src/codecs/EncryptedCodec.ts`
+
+**Purpose:** Codec wrapper that adds AES-GCM encryption to any ConfigCodec.
+
+**Responsibilities:**
+
+- Accept an inner ConfigCodec and an EncryptedCodecKey (CryptoKey or
+  Passphrase)
+- On `parse`: base64-decode, extract 12-byte IV, decrypt with AES-GCM, pass
+  plaintext to inner codec's `parse`
+- On `stringify`: serialize with inner codec, generate random 12-byte IV,
+  encrypt with AES-GCM, prepend IV, base64-encode
+- Cache derived keys after first PBKDF2 derivation (Passphrase variant)
+
+**Key types:**
+
+```typescript
+type EncryptedCodecKey =
+  | { _tag: "CryptoKey"; key: Effect<CryptoKey, CodecError> }
+  | { _tag: "Passphrase"; passphrase: string; salt: Uint8Array };
+
+// Convenience constructors
+EncryptedCodecKey.fromCryptoKey(key)
+EncryptedCodecKey.fromPassphrase(passphrase, salt)
+
+// Wrapper function
+EncryptedCodec(inner: ConfigCodec, keySource: EncryptedCodecKey): ConfigCodec
+```
+
+**Crypto details:**
+
+- Algorithm: AES-GCM with 256-bit keys
+- IV: 12 bytes, randomly generated per `stringify` call
+- Key derivation (Passphrase): PBKDF2 with SHA-256, 100,000 iterations
+- Runtime: Uses `globalThis.crypto` (Web Crypto API) -- works in Node 20+,
+  Bun, and Deno
+
+**Dependencies:**
+
+- Depends on: inner ConfigCodec, Web Crypto API
+- Used by: consumer applications needing encrypted config storage
+
+#### Component 6: ConfigMigration
+
+**Location:** `src/migrations/ConfigMigration.ts`
+
+**Purpose:** Schema versioning and migration system. Wraps a ConfigCodec to
+apply versioned migration steps post-parse, pre-schema-decode.
+
+**Responsibilities:**
+
+- Define `ConfigFileMigration` interface: version, name, up(), optional down()
+- Define `VersionAccess` interface: pluggable get/set for version field
+  location (default reads/writes a top-level `version` field)
+- `ConfigMigration.make(options)` returns a new ConfigCodec that:
+  1. Parses with the inner codec
+  2. Reads the current version via VersionAccess.get
+  3. Applies pending migrations (version > current) in ascending order
+  4. Updates the version after each migration via VersionAccess.set
+  5. Returns the migrated data for schema decode
+
+**Key types:**
+
+```typescript
+interface ConfigFileMigration {
+  readonly version: number;
+  readonly name: string;
+  readonly up: (raw: unknown) => Effect<unknown, ConfigError>;
+  readonly down?: (raw: unknown) => Effect<unknown, ConfigError>;
+}
+
+interface VersionAccess {
+  readonly get: (raw: unknown) => Effect<number, ConfigError>;
+  readonly set: (raw: unknown, version: number) => Effect<unknown, ConfigError>;
+}
+```
+
+**Error mapping:** Migration errors (ConfigError) are mapped to CodecError so
+the returned codec satisfies the ConfigCodec interface. This keeps the error
+surface uniform from the caller's perspective.
+
+**Dependencies:**
+
+- Depends on: inner ConfigCodec
+- Used by: consumer applications needing config schema evolution
+
+#### Component 7: ConfigWatcher
+
+**Location:** `src/watcher/ConfigFileChange.ts`, `src/watcher/ConfigWatcher.ts`
+
+**Purpose:** Polling-based config file change detection. Returns a Stream of
+ConfigFileChange events whenever watched files differ from their previous
+values.
+
+**Responsibilities:**
+
+- Define `ConfigFileChange<A>` interface: path, previous Option, current
+  Option, timestamp
+- Define `ConfigWatcherService<A>` interface: `watch(options?)` returns
+  `Stream<ConfigFileChange<A>, ConfigError>`
+- Poll each watched path at a configurable interval (default 5 seconds)
+- Track previous values via `Ref<Map<string, Option<A>>>`
+- Detect changes via `JSON.stringify` structural comparison
+- Represent file appearance/disappearance via Option values
+
+**Key types:**
+
+```typescript
+interface ConfigFileChange<A> {
+  readonly path: string;
+  readonly previous: Option.Option<A>;
+  readonly current: Option.Option<A>;
+  readonly timestamp: DateTime.Utc;
+}
+
+interface WatchOptions {
+  readonly interval?: Duration.DurationInput;
+  readonly signal?: AbortSignal;
+}
+
+// Factories
+ConfigWatcher.Tag<A>(id): Context.Tag<ConfigWatcherService<A>>
+ConfigWatcher.Live<A>(options): Layer.Layer<ConfigWatcherService<A>, never, ConfigFileService<A>>
+```
+
+**Dependencies:**
+
+- Depends on: ConfigFileService (uses `loadFrom` to poll each path)
+- Used by: consumer applications needing live config reloading
 
 ### Pluggable Extension Points
 
 #### Codecs
 
 Interface `ConfigCodec` (at `src/codecs/ConfigCodec.ts`) with two built-in
-implementations:
+format implementations and two codec wrappers:
 
-| Codec | File | Extensions |
-| ----- | ---- | ---------- |
-| `JsonCodec` | `src/codecs/JsonCodec.ts` | `.json` |
-| `TomlCodec` | `src/codecs/TomlCodec.ts` | `.toml` |
+| Codec | File | Type | Extensions |
+| ----- | ---- | ---- | ---------- |
+| `JsonCodec` | `src/codecs/JsonCodec.ts` | Format | `.json` |
+| `TomlCodec` | `src/codecs/TomlCodec.ts` | Format | `.toml` |
+| `EncryptedCodec` | `src/codecs/EncryptedCodec.ts` | Wrapper | (inherits inner) |
+| `ConfigMigration.make` | `src/migrations/ConfigMigration.ts` | Wrapper | (inherits inner) |
 
-Each codec provides `parse(raw) -> Effect<unknown, CodecError>` and
+Each format codec provides `parse(raw) -> Effect<unknown, CodecError>` and
 `stringify(value) -> Effect<string, CodecError>`. TomlCodec uses `smol-toml`
 as the only runtime dependency.
+
+Wrapper codecs compose around a format codec, transforming data in the parse
+and/or stringify pipeline while preserving the ConfigCodec interface.
+`EncryptedCodec` adds AES-GCM encryption. `ConfigMigration.make` applies
+versioned migrations post-parse.
 
 #### Resolvers
 
@@ -231,18 +439,23 @@ api-extractor compatibility:
                    v
            ConfigFile.Live(options)
                    |
-     +-------------+-------------+
-     |             |             |
-  Resolvers     Codec       Strategy
-  [0..N]       (1)          (1)
-     |             |             |
-     v             v             v
-  Option<path>   parse/     resolve(
-     |           stringify   sources)
-     v             |             |
-  FileSystem       v             v
-  (@effect/    CodecError    ConfigError
+     +------+------+------+------+
+     |      |      |      |      |
+  Resolvers Codec  Strategy Events  Watcher
+  [0..N]   (1)    (1)     (opt)   (opt)
+     |      |      |      |        |
+     v      v      v      v        v
+  Option  parse/ resolve PubSub  Stream<
+  <path>  strfy  (srcs)  <Event> Change>
+     |      |      |
+     v      v      v
+  FileSystem    ConfigError
+  (@effect/
    platform)
+
+  Codec composition (optional):
+  EncryptedCodec(inner) -> AES-GCM layer
+  ConfigMigration.make({codec}) -> migration layer
 ```
 
 ---
@@ -316,6 +529,64 @@ the entire config loading pipeline. Missing files are expected.
 to "not found". This means consumers can list resolvers without worrying about
 order-dependent failures.
 
+#### Decision 5: PubSub for config lifecycle events
+
+**Context:** Consumers need observability into the config loading pipeline
+(which files were found, what failed, when saves happen) without modifying the
+core return types.
+
+**Options considered:**
+
+1. **Effect PubSub with opt-in tag (Chosen):**
+   - Pros: Zero overhead when not used (emit is `Effect.void`), subscribers
+     decouple from producers, multiple listeners possible, no return type
+     changes
+   - Cons: Events are fire-and-forget, no backpressure
+   - Why chosen: PubSub is the idiomatic Effect broadcast mechanism. Opt-in
+     via `events` field in options means zero cost for consumers who do not
+     need observability
+
+2. **Return events alongside data (tuple return types):**
+   - Pros: Events are part of the type-safe pipeline
+   - Cons: Breaking API change, every consumer must destructure results
+   - Why rejected: Would break all existing consumers and add noise
+
+3. **Effect fiber-local logging:**
+   - Pros: Built-in to Effect
+   - Cons: Unstructured, not subscribable, harder to filter programmatically
+   - Why rejected: Events need structured payloads for downstream processing
+
+#### Decision 6: Codec wrapper pattern for encryption and migration
+
+**Context:** Both encryption and migration need to intercept the parse and/or
+stringify pipeline without changing the ConfigCodec interface.
+
+**Approach:** `EncryptedCodec(inner, key)` and `ConfigMigration.make({codec})`
+both accept a ConfigCodec and return a new ConfigCodec. This allows arbitrary
+composition: `ConfigMigration.make({ codec: EncryptedCodec(JsonCodec, key) })`.
+Errors are mapped to CodecError to maintain interface conformance.
+
+#### Decision 7: Polling-based watcher with JSON.stringify comparison
+
+**Context:** Config file watching needs to detect changes across platforms
+without native filesystem watcher dependencies.
+
+**Options considered:**
+
+1. **Polling with JSON.stringify comparison (Chosen):**
+   - Pros: Works on all platforms, no native dependencies, simple
+     implementation, handles Option values naturally
+   - Cons: Not instant, CPU cost scales with poll frequency and file count
+   - Why chosen: Config files change infrequently. A 5-second default poll
+     interval is sufficient for most use cases. The implementation is
+     portable and testable
+
+2. **Native fs.watch / inotify:**
+   - Pros: Instant notifications, no CPU overhead
+   - Cons: Platform-specific behavior, unreliable cross-platform (macOS vs
+     Linux vs Windows), requires native bindings
+   - Why rejected: Violates platform abstraction principle
+
 ### Design Patterns Used
 
 #### Pattern 1: Service/Layer separation
@@ -337,6 +608,27 @@ order-dependent failures.
 - **Why used:** Missing config files are normal; filesystem errors should not
   abort the resolver chain.
 
+#### Pattern 4: Codec wrapper composition
+
+- **Where used:** EncryptedCodec, ConfigMigration.make
+- **Why used:** Both features need to intercept the parse/stringify pipeline
+  without altering the ConfigCodec interface. Wrapping produces a new
+  ConfigCodec that composes naturally with the rest of the system.
+
+#### Pattern 5: Opt-in PubSub events via serviceOption
+
+- **Where used:** ConfigFileLive event emission
+- **Why used:** `Effect.serviceOption` allows ConfigFileLive to look up the
+  events service without failing if it is absent. This makes events truly
+  optional -- no event tag means no events, no error.
+
+#### Pattern 6: Ref-based state in streaming pipelines
+
+- **Where used:** ConfigWatcher polling loop
+- **Why used:** `Ref<Map<string, Option<A>>>` tracks previous values across
+  poll iterations. Pure functional state management compatible with Effect's
+  concurrency model.
+
 ### Constraints and Trade-offs
 
 #### Trade-off: Runtime dependency on smol-toml
@@ -346,13 +638,24 @@ order-dependent failures.
 - **Why it is worth it:** TOML is the natural format for CLI tool configuration.
   smol-toml is small (~15KB) and zero-dependency.
 
-#### Trade-off: Optional @effect/platform-node peer
+#### Trade-off: Web Crypto API for encryption
 
-- **What we gained:** The Test layer works out of the box with Node.js
-- **What we sacrificed:** The Test layer imports from @effect/platform-node
-  directly, coupling it to Node
-- **Why it is worth it:** Tests overwhelmingly run on Node. Future platform
-  layers can provide alternative test implementations.
+- **What we gained:** AES-GCM encryption with no native dependencies
+- **What we sacrificed:** Requires `globalThis.crypto.subtle` -- available in
+  Node 20+, Bun, and Deno, but not older Node versions
+- **Why it is worth it:** The library already targets modern runtimes. Web
+  Crypto is standardized, audited, and does not require shipping native
+  binaries.
+
+#### Trade-off: Platform-agnostic Test layer (formerly Node-coupled)
+
+- **What we gained:** The Test layer now works with any platform
+  (Node, Bun, Deno) by accepting `FileSystem` from `@effect/platform`
+- **What we sacrificed:** Consumers must now explicitly provide a
+  platform-specific FileSystem layer (e.g., `NodeFileSystem.layer`)
+- **Why it is worth it:** Decouples the library from Node.js entirely.
+  The added consumer boilerplate is minimal (one `Layer.provide` call) and
+  enables true multi-platform testing. This was a breaking change at 0.x.
 
 ---
 
@@ -363,16 +666,23 @@ order-dependent failures.
 The core pipeline runs when `ConfigFileService.load` is called:
 
 1. **Discover:** Iterate over the resolver array. Each resolver's `resolve`
-   effect runs, returning `Option<path>`.
+   effect runs, returning `Option<path>`. Emits `Discovered` or
+   `DiscoveryFailed` events.
 2. **Read:** For each found path, read the file content via FileSystem.
-3. **Parse:** Pass raw content to the codec's `parse` method.
+3. **Parse:** Pass raw content to the codec's `parse` method. If the codec is
+   wrapped (encrypted, migrated), those transformations run here. Emits
+   `Parsed` or `ParseFailed` events.
 4. **Decode:** Decode the parsed value against the Effect Schema.
 5. **Validate:** Run the optional `validate` callback (post-decode hook).
+   Emits `Validated` or `ValidationFailed` events.
 6. **Collect:** Build `ConfigSource<A>` entries with path, tier, and value.
 7. **Resolve:** Pass all sources to the strategy for final resolution.
+   Emits `Resolved` event. If no sources, emits `NotFound`.
+8. **Complete:** Emits `Loaded` event with the resolved path.
 
-Errors at steps 2-4 are wrapped in `ConfigError` with context (operation,
-path, reason).
+Errors at steps 2-5 are wrapped in `ConfigError` with context (operation,
+path, reason). Events at each step are only emitted when the `events` tag
+is provided in ConfigFileOptions.
 
 ### Component Interactions
 
@@ -381,23 +691,45 @@ Resolver[0]    Resolver[1]    Resolver[N]
   |               |               |
   v               v               v
 Option<path>   Option<path>   Option<path>
-  |               |               |
-  v               v               v
-FileSystem.readFileString   (for each Some)
-  |               |
+  |               |               |           Events (opt-in)
+  v               v               v              |
+FileSystem.readFileString   (for each Some)      v
+  |               |                           PubSub<ConfigEvent>
+  v               v                              ^
+Codec.parse     Codec.parse  ---- emit Parsed ---+
+  |               |               (or ParseFailed)
   v               v
-Codec.parse     Codec.parse
-  |               |
-  v               v
-Schema.decode   Schema.decode
-  |               |
+Schema.decode   Schema.decode --- emit Validated -+
+  |               |               (or ValidationFailed)
   +-------+-------+
           |
           v
-   Strategy.resolve([sources])
+   Strategy.resolve([sources]) -- emit Resolved --+
           |
           v
-   Final config value A
+   Final config value A ------- emit Loaded ------+
+```
+
+### Codec Composition Pipeline
+
+When codecs are wrapped, the parse pipeline becomes layered:
+
+```text
+Raw file content (string)
+     |
+     v
+EncryptedCodec.parse (optional)
+  base64-decode -> extract IV -> AES-GCM decrypt
+     |
+     v
+ConfigMigration.parse (optional)
+  read version -> apply pending migrations -> update version
+     |
+     v
+Inner codec parse (JsonCodec / TomlCodec)
+     |
+     v
+Parsed unknown value -> Schema.decode -> validate
 ```
 
 ### Error Handling Strategy
@@ -406,11 +738,21 @@ All errors are `Data.TaggedError` subclasses, enabling pattern matching via
 `Effect.catchTag`:
 
 - **ConfigError** carries the operation (read/parse/validate/encode/stringify/
-  write/save/resolve) and optional file path for precise diagnostics
-- **CodecError** wraps parse/stringify failures from JSON or TOML codecs
+  write/save/resolve/migration) and optional file path for precise diagnostics
+- **CodecError** wraps parse/stringify failures from JSON, TOML, or encrypted
+  codecs
 
 ConfigFileLive maps CodecErrors to ConfigErrors at each pipeline stage,
 preserving the original error as the `reason` string.
+
+ConfigMigration maps ConfigErrors from migration `up()` functions to
+CodecErrors so the wrapped codec satisfies the ConfigCodec interface.
+
+EncryptedCodec produces CodecErrors for key derivation failures, base64
+decode/encode errors, and AES-GCM decrypt/encrypt failures.
+
+Event emission failures are silently swallowed (`Effect.catchAll(() =>
+Effect.void)`) -- observability must never abort the data pipeline.
 
 ---
 
@@ -428,6 +770,7 @@ interface ConfigFileOptions<A> {
   readonly resolvers: ReadonlyArray<ConfigResolver<any>>;
   readonly defaultPath?: Effect<string, ConfigError, any>;
   readonly validate?: (value: A) => Effect<A, ConfigError>;
+  readonly events?: Context.Tag<ConfigEventsService, ConfigEventsService>; // opt-in
 }
 
 // Intermediate: discovered during resolver chain
@@ -435,6 +778,28 @@ interface ConfigSource<A> {
   readonly path: string;   // filesystem path
   readonly tier: string;   // resolver name
   readonly value: A;       // parsed + validated value
+}
+
+// Event system
+class ConfigEvent {
+  timestamp: DateTime.Utc;
+  event: ConfigEventPayload; // Union of 15 TaggedStruct variants
+}
+
+// Watcher output
+interface ConfigFileChange<A> {
+  readonly path: string;
+  readonly previous: Option.Option<A>;
+  readonly current: Option.Option<A>;
+  readonly timestamp: DateTime.Utc;
+}
+
+// Migration definition
+interface ConfigFileMigration {
+  readonly version: number;
+  readonly name: string;
+  readonly up: (raw: unknown) => Effect<unknown, ConfigError>;
+  readonly down?: (raw: unknown) => Effect<unknown, ConfigError>;
 }
 ```
 
@@ -453,19 +818,74 @@ interface ConfigSource<A> {
 [Schema.encodeUnknown(schema)(value)]
         |
         v
-[Codec.stringify(encoded)]
+[Codec.stringify(encoded)]  -- (if encrypted: encrypt -> base64-encode)
         |
         v
 [FileSystem.writeFileString(path, serialized)]
+        |                          emit Written
+        v
+[emit Saved]
         |
         v
 [Return path]
+```
+
+### Event Subscription Flow
+
+```text
+[ConfigEvents.Tag("my-app")]     [ConfigEvents.Live(tag)]
+            |                              |
+            v                              v
+    Context.Tag<Service>          Layer with unbounded PubSub
+            |
+            +--- pass as options.events to ConfigFile.Live
+            |
+            v
+[ConfigFileLive emits events at each pipeline stage]
+            |
+            v
+[Consumer subscribes via PubSub.subscribe(service.events)]
+            |
+            v
+[Stream of ConfigEvent with timestamp + payload]
+```
+
+### Watcher Flow
+
+```text
+[ConfigWatcher.Live({ tag, configTag, paths })]
+        |
+        v
+[Initialize: loadFrom each path, store in Ref<Map>]
+        |
+        v
+[Poll loop: Schedule.spaced(interval)]
+        |
+        v
+[For each path: loadFrom -> compare JSON.stringify with previous]
+        |
+   changed?
+   yes |        no
+       v         v
+[Emit ConfigFileChange]  [Skip]
+       |
+       v
+[Update Ref with new values]
+        |
+        v
+[Stream.mapConcat -> flatten to individual change events]
 ```
 
 ### State Management
 
 - **ConfigFile:** Stateless -- reads filesystem on every call. No caching of
   resolved config values. Each `load` call runs the full resolver chain.
+- **ConfigWatcher:** Maintains a `Ref<Map<string, Option<A>>>` tracking the
+  last-known value for each watched path. State is scoped to the watcher
+  layer lifetime.
+- **EncryptedCodec (Passphrase):** Caches the derived CryptoKey after first
+  PBKDF2 derivation via a closure-scoped `let cached` variable. One key per
+  codec instance.
 
 ---
 
@@ -551,16 +971,18 @@ chains.
 
 ### Short-term
 
-- **Config file watching:** Add an optional `watch` method that returns a
-  `Stream` of config changes using filesystem polling or native watchers.
 - **YAML codec:** Add a built-in YAML codec for broader config format support.
+- **Native filesystem watcher backend:** Add an optional native watcher
+  backend for ConfigWatcher that uses `fs.watch`/inotify alongside polling,
+  for lower latency when platform support is available.
 
 ### Medium-term
 
-- **Config migration system:** Add schema versioning and migration so config
-  files can be upgraded between versions automatically.
-- **Platform-agnostic Test layer:** Decouple ConfigFileTest from
-  `@effect/platform-node` by accepting a FileSystem layer parameter.
+- **Downward migrations:** The `ConfigFileMigration.down()` function is
+  defined in the interface but not yet invoked by ConfigMigration.make.
+  Implement a `downgrade(targetVersion)` flow.
+- **Event filtering and replay:** Add helper utilities for filtering event
+  streams by payload tag and replaying events from a bounded buffer.
 
 ### Potential Refactoring
 
@@ -569,6 +991,15 @@ chains.
   variadic generics or a builder pattern.
 - **Migrate from GenericTag:** When Effect adds native type-parameterized
   tags, update ConfigFile.Tag to use the new mechanism.
+
+### Completed (feat/ergonomics branch)
+
+- ~~Config file watching~~ -- Implemented as ConfigWatcher (polling-based)
+- ~~Config migration system~~ -- Implemented as ConfigMigration.make
+- ~~Platform-agnostic Test layer~~ -- ConfigFileTest decoupled from
+  @effect/platform-node
+- **Added:** ConfigEvents PubSub event system
+- **Added:** EncryptedCodec (AES-GCM encryption wrapper)
 
 ---
 
@@ -597,7 +1028,57 @@ chains.
 
 ---
 
-**Document Status:** Current at 95% completeness. All sections synced with
-the implementation including GitRoot resolver, WorkspaceRoot multi-subpath
-support, validate hook/method, @effect/platform Path usage, and integration
-test pattern with fixtures and snapshots.
+### Public API Surface (barrel export)
+
+The single barrel export at `src/index.ts` re-exports the following:
+
+| Category | Exports | Type |
+| -------- | ------- | ---- |
+| Codecs | `ConfigCodec` (type), `JsonCodec`, `TomlCodec`, `EncryptedCodec`, `EncryptedCodecKey` | interface + values |
+| Errors | `ConfigError`, `ConfigErrorBase`, `CodecError`, `CodecErrorBase` | classes |
+| Events | `ConfigEvent`, `ConfigEventPayload`, `ConfigEventsService` (type), `ConfigEvents` | Schema.Class + value |
+| Layers | `ConfigFileOptions` (type), `ConfigFileTestOptions` (type) | interfaces |
+| Migrations | `ConfigFileMigration` (type), `ConfigMigration`, `VersionAccess` | interface + values |
+| Resolvers | `ConfigResolver` (type), `ExplicitPath`, `StaticDir`, `UpwardWalk`, `WorkspaceRoot`, `GitRoot` | interface + values |
+| Services | `ConfigFileService` (type), `ConfigFile` | interface + namespace |
+| Strategies | `ConfigSource` (type), `ConfigWalkStrategy` (type), `FirstMatch`, `LayeredMerge` | interfaces + values |
+| Watcher | `ConfigFileChange` (type), `ConfigWatcherService` (type), `WatchOptions` (type), `ConfigWatcher` | interfaces + namespace |
+
+---
+
+## Changelog
+
+### 2026-04-23 (feat/ergonomics branch sync)
+
+**New subsystems added:**
+
+- **ConfigEvents** -- PubSub event system with 15 lifecycle event variants,
+  opt-in via `events` field in ConfigFileOptions
+- **EncryptedCodec** -- AES-GCM encrypted codec wrapper with CryptoKey and
+  Passphrase key sources
+- **ConfigMigration** -- Schema versioning and migration pipeline wrapping
+  ConfigCodec, with pluggable VersionAccess
+- **ConfigWatcher** -- Polling-based config file change detection returning
+  `Stream<ConfigFileChange<A>>`
+
+**Breaking changes:**
+
+- **ConfigFileTest** -- Removed `@effect/platform-node` dependency. Layer
+  type changed from `Layer.Layer<..., never, Scope.Scope>` to
+  `Layer.Layer<..., never, FileSystem.FileSystem | Scope.Scope>`. Consumer
+  must provide platform-specific FileSystem layer.
+
+**Architecture changes:**
+
+- ConfigFileOptions gained optional `events` field
+- ConfigFileLive emits structured events at each pipeline stage when events
+  tag is provided
+- Codec composition pattern established (EncryptedCodec, ConfigMigration.make)
+- New directories: `src/events/`, `src/migrations/`, `src/watcher/`
+
+---
+
+**Document Status:** Current at 97% completeness. All sections synced with
+the implementation including the five new subsystems from feat/ergonomics:
+ConfigEvents, EncryptedCodec, ConfigMigration, ConfigWatcher, and
+platform-agnostic ConfigFileTest.

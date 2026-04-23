@@ -1,8 +1,10 @@
 import { FileSystem, Path } from "@effect/platform";
 import type { Context } from "effect";
-import { Effect, Layer, Option, Schema } from "effect";
+import { DateTime, Effect, Layer, Option, PubSub, Schema } from "effect";
 import type { ConfigCodec } from "../codecs/ConfigCodec.js";
 import { ConfigError } from "../errors/ConfigError.js";
+import { ConfigEvent } from "../events/ConfigEvent.js";
+import type { ConfigEventsService } from "../events/ConfigEvents.js";
 import type { ConfigResolver } from "../resolvers/ConfigResolver.js";
 import type { ConfigFileService } from "../services/ConfigFile.js";
 import type { ConfigSource, ConfigWalkStrategy } from "../strategies/ConfigWalkStrategy.js";
@@ -23,6 +25,7 @@ export interface ConfigFileOptions<A> {
 	// biome-ignore lint/suspicious/noExplicitAny: defaultPath may carry heterogeneous requirements
 	readonly defaultPath?: Effect.Effect<string, ConfigError, any>;
 	readonly validate?: (value: A) => Effect.Effect<A, ConfigError>;
+	readonly events?: Context.Tag<ConfigEventsService, ConfigEventsService>;
 }
 
 /**
@@ -44,6 +47,21 @@ export const makeConfigFileLiveImpl = <A>(
 			const fs = yield* FileSystem.FileSystem;
 			const platformPath = yield* Path.Path;
 
+			const emit = (payload: typeof ConfigEvent.Type.event): Effect.Effect<void> =>
+				options.events
+					? Effect.serviceOption(options.events).pipe(
+							Effect.flatMap((maybeService) => {
+								const svc = Option.getOrUndefined(maybeService);
+								if (!svc) return Effect.void;
+								return Effect.gen(function* () {
+									const now = yield* DateTime.now;
+									yield* PubSub.publish(svc.events, new ConfigEvent({ timestamp: now, event: payload }));
+								});
+							}),
+							Effect.catchAll(() => Effect.void),
+						)
+					: Effect.void;
+
 			const runValidate = (value: A): Effect.Effect<A, ConfigError> =>
 				options.validate ? options.validate(value) : Effect.succeed(value);
 
@@ -52,13 +70,20 @@ export const makeConfigFileLiveImpl = <A>(
 					const raw = yield* fs
 						.readFileString(path)
 						.pipe(Effect.mapError((e) => new ConfigError({ operation: "read", path, reason: String(e) })));
-					const parsed = yield* options.codec
-						.parse(raw)
-						.pipe(Effect.mapError((e) => new ConfigError({ operation: "parse", path, reason: String(e) })));
+					const parsed = yield* options.codec.parse(raw).pipe(
+						Effect.tapError((e) => emit({ _tag: "ParseFailed", path, codec: options.codec.name, reason: String(e) })),
+						Effect.mapError((e) => new ConfigError({ operation: "parse", path, reason: String(e) })),
+					);
+					yield* emit({ _tag: "Parsed", path, codec: options.codec.name });
 					const decoded = yield* Schema.decodeUnknown(options.schema)(parsed).pipe(
+						Effect.tapError((e) => emit({ _tag: "ValidationFailed", path, reason: String(e) })),
 						Effect.mapError((e) => new ConfigError({ operation: "validate", path, reason: String(e) })),
 					);
-					return yield* runValidate(decoded);
+					const validated = yield* runValidate(decoded).pipe(
+						Effect.tapError((e) => emit({ _tag: "ValidationFailed", path, reason: String(e) })),
+					);
+					yield* emit({ _tag: "Validated", path });
+					return validated;
 				});
 
 			const encodeAndWrite = (value: A, path: string): Effect.Effect<void, ConfigError> =>
@@ -72,34 +97,65 @@ export const makeConfigFileLiveImpl = <A>(
 					yield* fs
 						.writeFileString(path, serialized)
 						.pipe(Effect.mapError((e) => new ConfigError({ operation: "write", path, reason: String(e) })));
+					yield* emit({ _tag: "Written", path });
 				});
 
 			const discoverSources: Effect.Effect<ReadonlyArray<ConfigSource<A>>, ConfigError> = Effect.gen(function* () {
 				const sources: Array<ConfigSource<A>> = [];
 				for (const resolver of options.resolvers) {
-					const result = yield* Effect.provideService(resolver.resolve, FileSystem.FileSystem, fs) as Effect.Effect<
-						Option.Option<string>
-					>;
+					const result = yield* (
+						Effect.provideService(resolver.resolve, FileSystem.FileSystem, fs) as Effect.Effect<Option.Option<string>>
+					).pipe(Effect.tapError((e) => emit({ _tag: "DiscoveryFailed", tier: resolver.name, reason: String(e) })));
 					if (Option.isSome(result)) {
 						const path = result.value;
+						yield* emit({ _tag: "Discovered", path, tier: resolver.name });
 						const value = yield* readParseValidate(path);
 						sources.push({ path, tier: resolver.name, value });
+					} else {
+						yield* emit({ _tag: "DiscoveryFailed", tier: resolver.name, reason: "not found" });
 					}
 				}
 				return sources;
 			});
 
+			const resolveAndEmit = (sources: ReadonlyArray<ConfigSource<A>>): Effect.Effect<A, ConfigError> =>
+				Effect.gen(function* () {
+					if (sources.length === 0) {
+						yield* emit({ _tag: "NotFound" });
+						return yield* Effect.fail(
+							new ConfigError({
+								operation: "resolve",
+								reason: "no config sources found",
+							}),
+						);
+					}
+					const value = yield* options.strategy.resolve(sources);
+					const first = sources[0];
+					if (first) {
+						yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: "strategy" });
+						yield* emit({ _tag: "Loaded", path: first.path });
+					}
+					return value;
+				});
+
 			const service: ConfigFileService<A> = {
-				load: Effect.flatMap(discoverSources, (sources) => options.strategy.resolve(sources)),
+				load: Effect.flatMap(discoverSources, resolveAndEmit),
 				loadFrom: readParseValidate,
 				discover: discoverSources,
 				loadOrDefault: (defaultValue: A) =>
 					Effect.gen(function* () {
 						const sources = yield* discoverSources;
 						if (sources.length === 0) {
+							yield* emit({ _tag: "NotFound" });
 							return defaultValue;
 						}
-						return yield* options.strategy.resolve(sources);
+						const value = yield* options.strategy.resolve(sources);
+						const first = sources[0];
+						if (first) {
+							yield* emit({ _tag: "Resolved", path: first.path, tier: first.tier, strategy: "strategy" });
+							yield* emit({ _tag: "Loaded", path: first.path });
+						}
+						return value;
 					}),
 				write: (value: A, path: string) => encodeAndWrite(value, path),
 				save: (value: A) =>
@@ -120,6 +176,7 @@ export const makeConfigFileLiveImpl = <A>(
 								Effect.catchAll((e) => Effect.fail(new ConfigError({ operation: "save", path, reason: String(e) }))),
 							);
 						yield* encodeAndWrite(value, path);
+						yield* emit({ _tag: "Saved", path });
 						return path;
 					}),
 				update: (fn: (current: A) => A, defaultValue?: A) =>
@@ -127,7 +184,8 @@ export const makeConfigFileLiveImpl = <A>(
 						const current =
 							defaultValue !== undefined ? yield* service.loadOrDefault(defaultValue) : yield* service.load;
 						const updated = fn(current);
-						yield* service.save(updated);
+						const path = yield* service.save(updated);
+						yield* emit({ _tag: "Updated", path });
 						return updated;
 					}),
 				validate: (value: unknown) =>

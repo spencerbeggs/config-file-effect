@@ -9,14 +9,22 @@
 
 // ── Codecs ──────────────────────────────────────────────────────────────────
 export type { ConfigCodec } from "./codecs/ConfigCodec.js";
+export { EncryptedCodec, EncryptedCodecKey } from "./codecs/EncryptedCodec.js";
 export { JsonCodec } from "./codecs/JsonCodec.js";
 export { TomlCodec } from "./codecs/TomlCodec.js";
 // ── Errors ──────────────────────────────────────────────────────────────────
 export { CodecError, CodecErrorBase } from "./errors/CodecError.js";
 export { ConfigError, ConfigErrorBase } from "./errors/ConfigError.js";
+// ── Events ──────────────────────────────────────────────────────────────────
+export { ConfigEvent, ConfigEventPayload } from "./events/ConfigEvent.js";
+export type { ConfigEventsService } from "./events/ConfigEvents.js";
+export { ConfigEvents } from "./events/ConfigEvents.js";
 // ── Layers ──────────────────────────────────────────────────────────────────
 export type { ConfigFileOptions } from "./layers/ConfigFileLive.js";
 export type { ConfigFileTestOptions } from "./layers/ConfigFileTest.js";
+// ── Migrations ──────────────────────────────────────────────────────────────
+export type { ConfigFileMigration } from "./migrations/ConfigMigration.js";
+export { ConfigMigration, VersionAccess } from "./migrations/ConfigMigration.js";
 // ── Resolvers ───────────────────────────────────────────────────────────────
 export type { ConfigResolver } from "./resolvers/ConfigResolver.js";
 export { ExplicitPath } from "./resolvers/ExplicitPath.js";
@@ -31,3 +39,7 @@ export { ConfigFile } from "./services/ConfigFile.js";
 export type { ConfigSource, ConfigWalkStrategy } from "./strategies/ConfigWalkStrategy.js";
 export { FirstMatch } from "./strategies/FirstMatch.js";
 export { LayeredMerge } from "./strategies/LayeredMerge.js";
+// ── Watcher ──────────────────────────────────────────────────────────────────
+export type { ConfigFileChange } from "./watcher/ConfigFileChange.js";
+export type { ConfigWatcherService, WatchOptions } from "./watcher/ConfigWatcher.js";
+export { ConfigWatcher } from "./watcher/ConfigWatcher.js";
