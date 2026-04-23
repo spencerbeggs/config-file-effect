@@ -116,7 +116,16 @@ export const ConfigWatcher = {
 							return Stream.mapConcat(pollStream, (changes) => changes);
 						};
 
-						return Stream.fromEffect(initState).pipe(Stream.flatMap(makeStream));
+						const baseStream = Stream.fromEffect(initState).pipe(Stream.flatMap(makeStream));
+
+						if (watchOptions?.signal) {
+							const abortEffect = Effect.async<never, never>((cb) => {
+								watchOptions.signal?.addEventListener("abort", () => cb(Effect.interrupt), { once: true });
+							});
+							return baseStream.pipe(Stream.interruptWhen(abortEffect));
+						}
+
+						return baseStream;
 					},
 				};
 

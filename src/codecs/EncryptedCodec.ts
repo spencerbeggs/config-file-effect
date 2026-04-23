@@ -110,7 +110,7 @@ function resolveKey(keySource: EncryptedCodecKey, codecName: string): Effect.Eff
 		catch: (error) =>
 			new CodecError({
 				codec: codecName,
-				operation: "parse",
+				operation: "key-derivation",
 				reason: `Key derivation failed: ${String(error)}`,
 			}),
 	});

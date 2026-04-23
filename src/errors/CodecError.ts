@@ -25,7 +25,7 @@ export const CodecErrorBase = Data.TaggedError("CodecError");
  */
 export class CodecError extends CodecErrorBase<{
 	readonly codec: string;
-	readonly operation: "parse" | "stringify";
+	readonly operation: "parse" | "stringify" | "key-derivation";
 	readonly reason: string;
 }> {
 	get message(): string {
