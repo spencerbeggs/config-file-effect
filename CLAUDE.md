@@ -170,7 +170,7 @@ All commits require:
 Packages publish to both GitHub Packages and npm with provenance via the
 [@savvy-web/changesets](https://github.com/savvy-web/changesets) release
 workflow. The GitHub Action is at
-[savvy-web/workflow-release-action](https://github.com/savvy-web/workflow-release-action).
+[savvy-web/silk-release-action](https://github.com/savvy-web/silk-release-action).
 
 ## Testing
 

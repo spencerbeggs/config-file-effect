@@ -54,7 +54,7 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"dependencies": {
-		"smol-toml": ">=1.6.1"
+		"smol-toml": "^1.6.1"
 	},
 	"devDependencies": {
 		"@effect/platform": "catalog:silkPeers",
