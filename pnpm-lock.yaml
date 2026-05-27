@@ -50,8 +50,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(e9546588306ecd1fc6906b3c129d1667)
       '@savvy-web/rslib-builder':
-        specifier: ^0.20.7
-        version: 0.20.7(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.9.1))(@typescript/native-preview@7.0.0-dev.20260526.1)(typescript@5.9.3))(@types/node@25.9.1)(@typescript/native-preview@7.0.0-dev.20260526.1)(jiti@2.6.1)(typescript@5.9.3)
+        specifier: ^0.20.8
+        version: 0.20.8(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.9.1))(@typescript/native-preview@7.0.0-dev.20260526.1)(typescript@5.9.3))(@types/node@25.9.1)(@typescript/native-preview@7.0.0-dev.20260526.1)(jiti@2.6.1)(typescript@5.9.3)
       '@savvy-web/vitest':
         specifier: ^1.3.2
         version: 1.3.2(bd95624a1b0bdec2a7ed528463b27870)
@@ -1055,8 +1055,8 @@ packages:
       '@biomejs/biome':
         optional: true
 
-  '@savvy-web/rslib-builder@0.20.7':
-    resolution: {integrity: sha512-uDkhB5/OWl1rXhw2/B0SNRrZutUVb3j+bU/bs6G1zlHvbOWx8ULMgO0uyDsClKJcp0tPhHMUMjNk+7VIHdMf2g==}
+  '@savvy-web/rslib-builder@0.20.8':
+    resolution: {integrity: sha512-yxE9ZCNYKpFIOPgwFu0Zro0P88zMvvn6cSCHu9N4SmKbZwTJtTwhrWHyV/H8LBr80yWAX6GCbXuG2RvbZAUhAw==}
     peerDependencies:
       '@rsbuild/plugin-react': ^2.0.0
       '@rslib/core': ^0.21.0
@@ -1121,6 +1121,7 @@ packages:
 
   '@swc/helpers@0.5.22':
     resolution: {integrity: sha512-/e2Ly3Docn9kYByap6TV4oquJ3wQuz3c+kC74riqtkwU9CwTMeuj6t2rW+bRr4pyOx/CYQM4wr0RgaKQwGEz0A==}
+    deprecated: This version contains a decorator helper regression from swc-project/swc#11847. Please upgrade to @swc/helpers@0.5.23 or newer.
 
   '@trpc/server@11.17.0':
     resolution: {integrity: sha512-jbAOUe0PpUTCYqziyu+8vYXZdDXPudZgnEhWCQ2NjKnVEjfE93RqHTt1oycZJv/HNf51YlRXfEEwSIAbb161rw==}
@@ -1199,7 +1200,6 @@ packages:
 
   '@types/parse-path@7.1.0':
     resolution: {integrity: sha512-EULJ8LApcVEPbrfND0cRQqutIOdiIgJ1Mgrhpy755r14xMohPTEpkV/k28SJvuOs9bHRFW8x+KeDAEPiGQPB9Q==}
-    deprecated: This is a stub types definition. parse-path provides its own type definitions, so you do not need this installed.
 
   '@types/ssri@7.1.5':
     resolution: {integrity: sha512-odD/56S3B51liILSk5aXJlnYt99S6Rt9EFDDqGtJM26rKHApHcwyU/UoYHrzKkdkHMAIquGWCuHtQTbes+FRQw==}
@@ -5140,7 +5140,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@savvy-web/rslib-builder@0.20.7(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.9.1))(@typescript/native-preview@7.0.0-dev.20260526.1)(typescript@5.9.3))(@types/node@25.9.1)(@typescript/native-preview@7.0.0-dev.20260526.1)(jiti@2.6.1)(typescript@5.9.3)':
+  '@savvy-web/rslib-builder@0.20.8(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.9.1))(@typescript/native-preview@7.0.0-dev.20260526.1)(typescript@5.9.3))(@types/node@25.9.1)(@typescript/native-preview@7.0.0-dev.20260526.1)(jiti@2.6.1)(typescript@5.9.3)':
     dependencies:
       '@microsoft/api-extractor': 7.58.7(@types/node@25.9.1)
       '@microsoft/tsdoc': 0.16.0
@@ -5301,8 +5301,8 @@ snapshots:
 
   '@typescript-eslint/project-service@8.56.1(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.56.1(typescript@5.9.3)
-      '@typescript-eslint/types': 8.56.1
+      '@typescript-eslint/tsconfig-utils': 8.60.0(typescript@5.9.3)
+      '@typescript-eslint/types': 8.60.0
       debug: 4.4.3
       typescript: 5.9.3
     transitivePeerDependencies:
