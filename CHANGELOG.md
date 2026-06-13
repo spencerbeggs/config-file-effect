@@ -1,5 +1,11 @@
 # config-file-effect
 
+## 0.2.1
+
+### Build System
+
+* [`b93aeae`](https://github.com/spencerbeggs/config-file-effect/commit/b93aeae2446a78da73e86cb0b89bd92575dc6c58) Patch release to match new peer dependecy floors.
+
 ## 0.2.0
 
 ### Breaking Changes
