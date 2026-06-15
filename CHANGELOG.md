@@ -1,5 +1,11 @@
 # config-file-effect
 
+## 0.2.2
+
+### Build System
+
+* [`0fc2723`](https://github.com/spencerbeggs/config-file-effect/commit/0fc27230364511ac3c82c3d02331746eaba16a74) Release with new bundler package.
+
 ## 0.2.1
 
 ### Build System
