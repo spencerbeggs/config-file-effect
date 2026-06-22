@@ -1,5 +1,17 @@
 # config-file-effect
 
+## 0.2.3
+
+### Dependencies
+
+* | [`0350173`](https://github.com/spencerbeggs/config-file-effect/commit/03501737c1ad86a0b024503fd90dd84961cf46d8) | Dependency    | Type    | Action  | From    | To |
+  | :-------------------------------------------------------------------------------------------------------------- | :------------ | :------ | :------ | :------ | -- |
+  | smol-toml                                                                                                       | dependency    | updated | ^1.6.1  | ^1.7.0  |    |
+  | @effect/platform                                                                                                | devDependency | updated | ^0.96.1 | ^0.96.2 |    |
+  | effect                                                                                                          | devDependency | updated | ^3.21.3 | ^3.21.4 |    |
+  | @savvy-web/bundler                                                                                              | devDependency | updated | ^0.6.0  | ^0.8.0  |    |
+  | @savvy-web/silk                                                                                                 | devDependency | updated | ^1.1.2  | ^1.2.0  |    |
+
 ## 0.2.2
 
 ### Build System
