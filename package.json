@@ -54,7 +54,7 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"dependencies": {
-		"smol-toml": "^1.6.1"
+		"smol-toml": "^1.7.0"
 	},
 	"devDependencies": {
 		"@effect/cluster": "catalog:silk",
@@ -62,8 +62,8 @@
 		"@effect/platform-node": "catalog:silk",
 		"@effect/rpc": "catalog:silk",
 		"@effect/sql": "catalog:silk",
-		"@savvy-web/bundler": "^0.6.0",
-		"@savvy-web/silk": "^1.1.2",
+		"@savvy-web/bundler": "^0.8.0",
+		"@savvy-web/silk": "^1.2.0",
 		"@savvy-web/vitest": "^1.5.1",
 		"effect": "catalog:silk"
 	},
@@ -90,7 +90,7 @@
 		"runtime": [
 			{
 				"name": "node",
-				"version": "26.3.0",
+				"version": "26.3.1",
 				"onFail": "ignore"
 			}
 		]
