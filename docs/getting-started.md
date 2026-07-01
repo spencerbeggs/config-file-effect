@@ -163,7 +163,7 @@ Once you have a `ConfigFileService<A>`, these methods are available:
 ## What's Next
 
 - [Codecs](./codecs.md) -- JsonCodec, TomlCodec, EncryptedCodec, custom codecs
-- [Resolvers](./resolvers.md) -- All 5 resolvers, resolution mechanics, custom
+- [Resolvers](./resolvers.md) -- All 6 resolvers, resolution mechanics, custom
   resolvers
 - [Strategies](./strategies.md) -- FirstMatch vs LayeredMerge, custom strategies
 - [Events](./events.md) -- PubSub event system for pipeline observability

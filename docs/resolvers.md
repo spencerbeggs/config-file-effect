@@ -36,11 +36,11 @@ can list resolvers freely without worrying about order-dependent failures.
 | Resolver | Name | Use Case |
 | -------- | ---- | -------- |
 | `ExplicitPath` | `"explicit"` | `--config` CLI flag |
-| `StaticDir` | `"static"` | System-wide config (e.g., `/etc/my-tool/`) |
+| `StaticDir` | `"static"` | Any known, fixed directory (generic) |
 | `UpwardWalk` | `"walk"` | Project-local config |
 | `WorkspaceRoot` | `"workspace"` | Shared monorepo config |
 | `GitRoot` | `"git"` | Config at git repository root |
-| `SystemEtc` | `"system"` | System-wide config under `/etc/<app>/` |
+| `SystemEtc` | `"system"` | Purpose-built `/etc/<app>/` probe (skips on Windows) |
 
 All built-in resolvers require `FileSystem` from `@effect/platform`.
 
@@ -123,7 +123,9 @@ When `subpaths` is provided, every subpath is tried, in order, within the
 current directory before ascending to its parent -- use `"."` for the
 directory itself. This makes the closest directory win: a match two levels up
 is never preferred over a match one level up, even if the winning subpath at
-the nearer level is later in the array.
+the nearer level is later in the array. When `subpaths` is omitted, it
+defaults to `["."]`, checking each directory directly (the original
+behavior).
 
 ```typescript
 // At each directory, check `<dir>/file` before `<dir>/.config/file`,
