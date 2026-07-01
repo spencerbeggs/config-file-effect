@@ -14,7 +14,7 @@ export interface WatchOptions {
 }
 
 /**
- * Service that emits a {@link Stream} of {@link ConfigFileChange} events
+ * Service that emits a `Stream` of {@link ConfigFileChange} events
  * whenever the contents of any watched path differ from the previous poll.
  *
  * @public
@@ -51,7 +51,7 @@ export const ConfigWatcher = {
 	 * configured interval and emits {@link ConfigFileChange} events for any diff.
 	 *
 	 * @remarks
-	 * Change detection uses {@link JSON.stringify} for structural equality.
+	 * Change detection uses `JSON.stringify` for structural equality.
 	 * The layer depends on the provided `configTag` being available in the context.
 	 */
 	Live: <A>(options: ConfigWatcherOptions<A>): Layer.Layer<ConfigWatcherService<A>, never, ConfigFileService<A>> =>

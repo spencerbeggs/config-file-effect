@@ -20,7 +20,7 @@ export interface ConfigFileService<A> {
 	readonly load: Effect.Effect<A, ConfigError>;
 	readonly loadFrom: (path: string) => Effect.Effect<A, ConfigError>;
 	readonly discover: Effect.Effect<ReadonlyArray<ConfigSource<A>>, ConfigError>;
-	/** Writes to an explicit path. Parent directory must already exist; use {@link save} for automatic directory creation. */
+	/** Writes to an explicit path. Parent directory must already exist; use {@link ConfigFileService.save} for automatic directory creation. */
 	readonly write: (value: A, path: string) => Effect.Effect<void, ConfigError>;
 	readonly loadOrDefault: (defaultValue: A) => Effect.Effect<A, ConfigError>;
 	readonly save: (value: A) => Effect.Effect<string, ConfigError>;

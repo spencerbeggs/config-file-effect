@@ -1,5 +1,11 @@
 import { Schema } from "effect";
 
+/**
+ * Discriminated union of all events published through {@link ConfigEvents}
+ * during config discovery, parsing, validation, and persistence.
+ *
+ * @public
+ */
 export const ConfigEventPayload = Schema.Union(
 	Schema.TaggedStruct("Discovered", {
 		path: Schema.String,
@@ -56,6 +62,12 @@ export const ConfigEventPayload = Schema.Union(
 	}),
 );
 
+/**
+ * A single published event: the {@link ConfigEventPayload} tagged union plus
+ * the `DateTimeUtc` timestamp at which it occurred.
+ *
+ * @public
+ */
 export class ConfigEvent extends Schema.Class<ConfigEvent>("ConfigEvent")({
 	timestamp: Schema.DateTimeUtc,
 	event: ConfigEventPayload,

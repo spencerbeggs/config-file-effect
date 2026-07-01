@@ -10,7 +10,7 @@ import type { ConfigFileService } from "../services/ConfigFile.js";
 import type { ConfigSource, ConfigWalkStrategy } from "../strategies/ConfigWalkStrategy.js";
 
 /**
- * Options for {@link makeConfigFileLive}.
+ * Options for {@link ConfigFile.Live}.
  *
  * @public
  */

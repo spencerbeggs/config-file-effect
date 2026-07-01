@@ -6,9 +6,9 @@ import type { ConfigCodec } from "./ConfigCodec.js";
  * Key source union for {@link EncryptedCodec}.
  *
  * @remarks
- * Use {@link EncryptedCodecKey.fromCryptoKey} to supply a pre-derived
- * `CryptoKey`, or {@link EncryptedCodecKey.fromPassphrase} to derive one via
- * PBKDF2 at first use.
+ * Use {@link (EncryptedCodecKey:variable).fromCryptoKey} to supply a
+ * pre-derived `CryptoKey`, or {@link (EncryptedCodecKey:variable).fromPassphrase}
+ * to derive one via PBKDF2 at first use.
  *
  * @public
  */
@@ -21,7 +21,7 @@ export type EncryptedCodecKey =
 	  };
 
 /**
- * Convenience constructors for {@link EncryptedCodecKey}.
+ * Convenience constructors for {@link (EncryptedCodecKey:type)}.
  *
  * @public
  */
