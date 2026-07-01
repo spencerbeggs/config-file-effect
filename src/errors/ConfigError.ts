@@ -3,12 +3,12 @@ import { Data } from "effect";
 /**
  * Tagged error base for {@link ConfigError}.
  *
- * @privateRemarks
+ * @remarks
  * Exported because TypeScript declaration bundling requires the base class to be
- * accessible when `ConfigError` appears in public type signatures.
- * Consumers should use {@link ConfigError} directly.
+ * accessible wherever `ConfigError` appears in a public type signature; it carries
+ * no fields of its own. Prefer constructing and catching {@link ConfigError} directly.
  *
- * @internal
+ * @public
  */
 export const ConfigErrorBase = Data.TaggedError("ConfigError");
 

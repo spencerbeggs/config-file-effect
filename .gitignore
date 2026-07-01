@@ -24,13 +24,16 @@ pnpm-release.json
 .env.development
 .env.production
 .env.test
+.env.workflow
+.env.workflow-cli
 !.env.example
 !.env.*.example
 
 # Claude AI files
 .claude/settings.local.json
 .claude/plans/
+.claude/cache/
+docs/superpowers/
 .claude/plugins-debug.log
 .playwright-mcp
-docs/superpowers/
 .mcp.json

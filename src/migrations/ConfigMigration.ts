@@ -68,6 +68,12 @@ export const VersionAccess = {
 	default: defaultVersionAccess as VersionAccess,
 };
 
+/**
+ * Options for {@link ConfigMigration.make}: the underlying codec, the ordered
+ * set of migrations to apply, and how to read/write the version field.
+ *
+ * @public
+ */
 export interface ConfigMigrationOptions {
 	readonly codec: ConfigCodec;
 	readonly migrations: ReadonlyArray<ConfigFileMigration>;

@@ -3,12 +3,12 @@ import { Data } from "effect";
 /**
  * Tagged error base for {@link CodecError}.
  *
- * @privateRemarks
+ * @remarks
  * Exported because TypeScript declaration bundling requires the base class to be
- * accessible when `CodecError` appears in public type signatures.
- * Consumers should use {@link CodecError} directly.
+ * accessible wherever `CodecError` appears in a public type signature; it carries
+ * no fields of its own. Prefer constructing and catching {@link CodecError} directly.
  *
- * @internal
+ * @public
  */
 export const CodecErrorBase = Data.TaggedError("CodecError");
 

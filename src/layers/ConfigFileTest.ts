@@ -5,6 +5,12 @@ import type { ConfigFileService } from "../services/ConfigFile.js";
 import type { ConfigFileOptions } from "./ConfigFileLive.js";
 import { makeConfigFileLiveImpl } from "./ConfigFileLive.js";
 
+/**
+ * Options for {@link ConfigFile.Test}: extends {@link ConfigFileOptions} with
+ * seed files to write into a temp directory before the layer is provided.
+ *
+ * @public
+ */
 export interface ConfigFileTestOptions<A> extends ConfigFileOptions<A> {
 	readonly files?: Record<string, string>;
 }

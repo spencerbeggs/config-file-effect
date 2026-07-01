@@ -7,10 +7,13 @@ import type { ConfigResolver } from "./ConfigResolver.js";
  *
  * @remarks
  * Starting from `cwd` (defaults to `process.cwd()`), checks each directory for
- * `filename`. Stops when the file is found, the filesystem root is reached, or
- * the `stopAt` boundary is hit. Returns `Option.some(path)` when found,
- * `Option.none()` otherwise. Filesystem errors are caught and treated as
- * "not found".
+ * `filename`. When `subpaths` is provided, each subpath is tried in order
+ * within a directory before ascending (e.g. `[".", ".config"]` checks
+ * `<dir>/filename` then `<dir>/.config/filename`); the first existing path
+ * wins, so a match in a nearer directory beats one higher up. Stops when a
+ * file is found, the filesystem root is reached, or the `stopAt` boundary is
+ * hit. Returns `Option.some(path)` when found, `Option.none()` otherwise.
+ * Filesystem errors are caught and treated as "not found".
  *
  * @public
  */
@@ -18,18 +21,22 @@ export const UpwardWalk = (options: {
 	readonly filename: string;
 	readonly cwd?: string;
 	readonly stopAt?: string;
+	readonly subpaths?: ReadonlyArray<string>;
 }): ConfigResolver<FileSystem.FileSystem> => ({
 	name: "walk",
 	resolve: Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const platformPath = yield* Path.Path;
 		let current = options.cwd ?? globalThis.process?.cwd?.() ?? "/";
+		const subpaths = options.subpaths ?? ["."];
 
 		while (true) {
-			const candidate = platformPath.join(current, options.filename);
-			const exists = yield* fs.exists(candidate);
-			if (exists) {
-				return Option.some(candidate);
+			for (const subpath of subpaths) {
+				const candidate = platformPath.join(current, subpath, options.filename);
+				const exists = yield* fs.exists(candidate);
+				if (exists) {
+					return Option.some(candidate);
+				}
 			}
 
 			if (options.stopAt && current === options.stopAt) {
