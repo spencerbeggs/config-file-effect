@@ -101,6 +101,57 @@ describe("UpwardWalk", () => {
 		const result = await run(resolver.resolve);
 		expect(Option.isNone(result)).toBe(true);
 	});
+
+	it("ignores .config when subpaths is omitted (default behavior unchanged)", async () => {
+		mkdirSync(join(tmpDir, ".config"), { recursive: true });
+		writeFileSync(join(tmpDir, ".config", "tool.config.json"), readFixture("app-config.json"));
+		const resolver = UpwardWalk({ filename: "tool.config.json", cwd: nested, stopAt: tmpDir });
+		const result = await run(resolver.resolve);
+		expect(Option.isNone(result)).toBe(true);
+	});
+
+	it("finds a file under a subpath while walking up", async () => {
+		mkdirSync(join(tmpDir, ".config"), { recursive: true });
+		writeFileSync(join(tmpDir, ".config", "tool.config.json"), readFixture("app-config.json"));
+		const resolver = UpwardWalk({
+			filename: "tool.config.json",
+			subpaths: [".", ".config"],
+			cwd: nested,
+		});
+		const result = await run(resolver.resolve);
+		expect(Option.isSome(result)).toBe(true);
+		expect(Option.getOrThrow(result)).toBe(join(tmpDir, ".config", "tool.config.json"));
+	});
+
+	it("prefers the closer directory over a bare match higher up", async () => {
+		// Bare file at the top (tmpDir); .config file one level down (tmpDir/a).
+		writeFileSync(join(tmpDir, "tool.config.json"), readFixture("app-config.json"));
+		mkdirSync(join(tmpDir, "a", ".config"), { recursive: true });
+		writeFileSync(join(tmpDir, "a", ".config", "tool.config.json"), readFixture("app-config.json"));
+		const resolver = UpwardWalk({
+			filename: "tool.config.json",
+			subpaths: [".", ".config"],
+			cwd: nested,
+		});
+		const result = await run(resolver.resolve);
+		expect(Option.isSome(result)).toBe(true);
+		// tmpDir/a is closer to `nested` than tmpDir, so its .config match wins.
+		expect(Option.getOrThrow(result)).toBe(join(tmpDir, "a", ".config", "tool.config.json"));
+	});
+
+	it("uses subpath order to break ties within a directory", async () => {
+		writeFileSync(join(tmpDir, "tool.config.json"), readFixture("app-config.json"));
+		mkdirSync(join(tmpDir, ".config"), { recursive: true });
+		writeFileSync(join(tmpDir, ".config", "tool.config.json"), readFixture("app-config.json"));
+		const resolver = UpwardWalk({
+			filename: "tool.config.json",
+			subpaths: [".config", "."], // .config listed first, so it wins even though bare also exists
+			cwd: nested,
+		});
+		const result = await run(resolver.resolve);
+		expect(Option.isSome(result)).toBe(true);
+		expect(Option.getOrThrow(result)).toBe(join(tmpDir, ".config", "tool.config.json"));
+	});
 });
 
 describe("WorkspaceRoot", () => {
