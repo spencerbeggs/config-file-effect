@@ -30,6 +30,7 @@ export type { ConfigResolver } from "./resolvers/ConfigResolver.js";
 export { ExplicitPath } from "./resolvers/ExplicitPath.js";
 export { GitRoot } from "./resolvers/GitRoot.js";
 export { StaticDir } from "./resolvers/StaticDir.js";
+export { SystemEtc } from "./resolvers/SystemEtc.js";
 export { UpwardWalk } from "./resolvers/UpwardWalk.js";
 export { WorkspaceRoot } from "./resolvers/WorkspaceRoot.js";
 // ── Services ────────────────────────────────────────────────────────────────
