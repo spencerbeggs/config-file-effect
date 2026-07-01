@@ -57,6 +57,7 @@ jobs:
             @savvy-web/pnpm-plugin-silk
           dependencies: |
             @savvy-web/*
+            @vitest-agent/*
             smol-toml
           run: |
             pnpm savvy init
