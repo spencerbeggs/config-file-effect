@@ -40,6 +40,7 @@ can list resolvers freely without worrying about order-dependent failures.
 | `UpwardWalk` | `"walk"` | Project-local config |
 | `WorkspaceRoot` | `"workspace"` | Shared monorepo config |
 | `GitRoot` | `"git"` | Config at git repository root |
+| `SystemEtc` | `"system"` | System-wide config under `/etc/<app>/` |
 
 All built-in resolvers require `FileSystem` from `@effect/platform`.
 
@@ -93,6 +94,7 @@ UpwardWalk(options: {
   readonly filename: string;
   readonly cwd?: string;
   readonly stopAt?: string;
+  readonly subpaths?: ReadonlyArray<string>;
 }): ConfigResolver<FileSystem>
 ```
 
@@ -114,6 +116,21 @@ UpwardWalk({
 UpwardWalk({
   filename: ".toolrc.json",
   cwd: "/projects/my-app/src/components",
+});
+```
+
+When `subpaths` is provided, every subpath is tried, in order, within the
+current directory before ascending to its parent -- use `"."` for the
+directory itself. This makes the closest directory win: a match two levels up
+is never preferred over a match one level up, even if the winning subpath at
+the nearer level is later in the array.
+
+```typescript
+// At each directory, check `<dir>/file` before `<dir>/.config/file`,
+// but a nearer directory's `.config/` match still beats a farther one.
+UpwardWalk({
+  filename: "my-tool.config.toml",
+  subpaths: [".", ".config"],
 });
 ```
 
@@ -179,6 +196,39 @@ GitRoot({ filename: ".myapprc.json" });
 GitRoot({
   filename: "config.toml",
   subpaths: [".config", "config", "."],
+});
+```
+
+### SystemEtc
+
+Probes `<dir>/<app>/<filename>`, where `dir` defaults to `/etc`. Returns the
+path if the file exists, `Option.none()` otherwise. On Windows, where `/etc`
+has no meaning, the resolver short-circuits to `Option.none()` without
+touching the filesystem.
+
+```typescript
+SystemEtc(options: {
+  readonly app: string;
+  readonly filename: string;
+  readonly dir?: string;
+}): ConfigResolver<FileSystem>
+```
+
+Use this for system-wide config installed by a package manager or admin,
+following the `/etc/<app>/` convention:
+
+```typescript
+import { SystemEtc } from "config-file-effect";
+
+// Checks /etc/my-tool/config.toml
+SystemEtc({ app: "my-tool", filename: "config.toml" });
+
+// Override `dir` for tests (the real /etc is not writable) or non-standard
+// system layouts
+SystemEtc({
+  app: "my-tool",
+  filename: "config.toml",
+  dir: "/tmp/test-etc",
 });
 ```
 

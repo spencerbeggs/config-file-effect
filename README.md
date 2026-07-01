@@ -24,8 +24,8 @@ Adopt only what you need.
   direct CryptoKey support
 - **Schema migrations** -- Versioned transforms applied post-parse via codec
   wrapping with pluggable `VersionAccess`
-- **Five resolvers** -- `ExplicitPath`, `StaticDir`, `UpwardWalk`,
-  `WorkspaceRoot`, and `GitRoot` cover common lookup patterns
+- **Six resolvers** -- `ExplicitPath`, `StaticDir`, `UpwardWalk`,
+  `WorkspaceRoot`, `GitRoot`, `SystemEtc`
 - **Two merge strategies** -- `FirstMatch` returns the highest-priority file;
   `LayeredMerge` deep-merges all sources
 - **Schema-validated** -- Every loaded config is decoded through an Effect
@@ -115,13 +115,17 @@ Resolvers determine where to look for config files. Each returns
 | -------- | -------- |
 | `ExplicitPath(path)` | Check if a specific file path exists |
 | `StaticDir({ dir, filename })` | Check for filename in a known directory |
-| `UpwardWalk({ filename, cwd?, stopAt? })` | Walk up from cwd looking for filename |
+| `UpwardWalk({ filename, cwd?, stopAt?, subpaths? })` | Walk up from cwd, checking ordered subpaths at each level |
 | `WorkspaceRoot({ filename, subpaths?, cwd? })` | Find monorepo root, check ordered subpaths |
 | `GitRoot({ filename, subpaths?, cwd? })` | Find `.git` root, check ordered subpaths |
+| `SystemEtc({ app, filename, dir? })` | Check `/etc/<app>/<filename>` (none on Windows) |
 
-Resolvers are tried in array order. `WorkspaceRoot` and `GitRoot` accept a
-`subpaths` array -- each subpath is tried in order, and `"."` means the root
-itself.
+Resolvers are tried in array order. `UpwardWalk`, `WorkspaceRoot`, and `GitRoot`
+accept a `subpaths` array -- each subpath is tried in order and `"."` means the
+directory itself. For `UpwardWalk`, all subpaths are checked at each level
+before ascending, so a match in a nearer directory wins (e.g.
+`subpaths: [".", ".config"]` finds `<dir>/file` or `<dir>/.config/file`,
+closest first).
 
 ## Merge strategies
 
@@ -383,7 +387,7 @@ const program = Effect.gen(function* () {
 - [Getting Started](./docs/getting-started.md)
 - [Codecs](./docs/codecs.md) -- JsonCodec, TomlCodec, EncryptedCodec, custom
   codecs
-- [Resolvers](./docs/resolvers.md) -- All 5 resolvers, resolution mechanics,
+- [Resolvers](./docs/resolvers.md) -- All 6 resolvers, resolution mechanics,
   custom resolvers
 - [Strategies](./docs/strategies.md) -- FirstMatch vs LayeredMerge, custom
   strategies
