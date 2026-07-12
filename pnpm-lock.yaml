@@ -45,9 +45,6 @@ catalogs:
     '@types/node':
       specifier: ^26.1.1
       version: 26.1.1
-    '@typescript/native-preview':
-      specifier: ^7.0.0-dev.20260630.1
-      version: 7.0.0-dev.20260707.2
     effect:
       specifier: ^3.21.4
       version: 3.21.4
@@ -89,9 +86,6 @@ importers:
       '@types/node':
         specifier: catalog:silk
         version: 26.1.1
-      '@typescript/native-preview':
-        specifier: catalog:silk
-        version: 7.0.0-dev.20260707.2
       '@vitest-agent/plugin':
         specifier: ^1.1.8
         version: 1.1.8(@vitest/coverage-istanbul@4.1.10)(@vitest/coverage-v8@4.1.10)(typescript@6.0.3)(vitest@4.1.10)
@@ -4346,6 +4340,7 @@ snapshots:
       '@typescript/native-preview-linux-x64': 7.0.0-dev.20260707.2
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260707.2
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20260707.2
+    optional: true
 
   '@vitest-agent/cli@1.0.7':
     dependencies:
