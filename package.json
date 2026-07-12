@@ -61,7 +61,7 @@
 		"@effect/rpc": "catalog:silk",
 		"@effect/sql": "catalog:silk",
 		"@savvy-web/bundler": "^1.1.11",
-		"@savvy-web/silk": "^2.3.1",
+		"@savvy-web/silk": "^2.3.2",
 		"@types/node": "catalog:silk",
 		"@vitest-agent/plugin": "^1.1.8",
 		"effect": "catalog:silk"
