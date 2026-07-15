@@ -60,10 +60,10 @@
 		"@effect/platform-node": "catalog:silk",
 		"@effect/rpc": "catalog:silk",
 		"@effect/sql": "catalog:silk",
-		"@savvy-web/bundler": "^1.1.13",
-		"@savvy-web/silk": "^2.4.2",
+		"@savvy-web/bundler": "^1.1.14",
+		"@savvy-web/silk": "^2.4.4",
 		"@types/node": "catalog:silk",
-		"@vitest-agent/plugin": "^1.1.8",
+		"@vitest-agent/plugin": "^1.1.9",
 		"effect": "catalog:silk"
 	},
 	"peerDependencies": {
