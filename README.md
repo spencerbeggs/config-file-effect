@@ -1,5 +1,11 @@
 # config-file-effect
 
+> [!CAUTION]
+> **This package is deprecated and no longer maintained.**
+> All functionality has been migrated to [`@effected/config-file`](https://www.npmjs.com/package/@effected/config-file)
+> Source code live in the [Effected monorepo](https://github.com/spencerbeggs/effected).
+> No further releases, fixes or security patches will be published here.
+
 [![npm version](https://img.shields.io/npm/v/config-file-effect)](https://www.npmjs.com/package/config-file-effect)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Effect](https://img.shields.io/badge/Effect-3.21+-black)](https://effect.website/)
